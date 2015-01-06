@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SteamKit2;
+using SteamTrade;
+using SteamTrade.TradeOffer;
 
 namespace KeyBot
 {
@@ -22,6 +24,27 @@ namespace KeyBot
 
         private string TwoFactorAuth;
         private string AuthCode;
+        private bool RetryLogin;
+
+        private string UniqueID;
+        private string SessionID;
+        private string Token;
+        private string TokenSecure;
+        private string UserNonce;
+
+        private TradeOfferManager OfferManager;
+        private HashSet<string> ProcessedOffers;
+
+        private static List<string> KeyClassIDs = new List<string>{
+            "360447207", //Phoenix key
+            "319543459", //CSGO key
+            "613613001", //Breakout key
+            "506857900", //Huntsman key
+            "319542879", //ESports key
+            "319540568", //Winter Offensive key
+            "638240119"  //Vanguard key
+        };
+
 
         public KeyBot(string login, string password, string apiKey)
         {
@@ -45,6 +68,10 @@ namespace KeyBot
             new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
             // this callback is triggered when the steam servers wish for the client to store the sentry file
             new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
+            new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
+            new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
+
+            ProcessedOffers = new HashSet<string>();
         }
 
         public void Start()
@@ -62,17 +89,18 @@ namespace KeyBot
             SteamClient.Disconnect();
         }
 
-
+        #region Logon
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
+            RetryLogin = true;
             if (callback.Result != EResult.OK) {
-                Console.WriteLine("Unable to connect to Steam: {0}", callback.Result);
+                Log("Unable to connect to Steam: " + callback.Result);
 
                 IsRunning = false;
                 return;
             }
 
-            Console.WriteLine("Connected to Steam! Logging in '{0}'...", Login);
+            Log("Connected to Steam! Logging in " + Login + "...");
 
             byte[] sentryHash = null;
             string sentryFileName = Path.Combine(Program.CurrentDirectory, "sentry.bin");
@@ -101,13 +129,15 @@ namespace KeyBot
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
-        {
-            // after recieving an AccountLogonDenied, we'll be disconnected from steam
-            // so after we read an authcode from the user, we need to reconnect to begin the logon flow again
-
-            Console.WriteLine("Disconnected from Steam, reconnecting...");
-            Thread.Sleep(TimeSpan.FromSeconds(2));
-            SteamClient.Connect();
+        {            
+            Log("Disconnected from Steam");
+            if (RetryLogin) {
+                // after recieving an AccountLogonDenied, we'll be disconnected from steam
+                // so after we read an authcode from the user, we need to reconnect to begin the logon flow again
+                Thread.Sleep(2000);
+                Log("Reconnecting");
+                SteamClient.Connect();
+            }
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -116,7 +146,7 @@ namespace KeyBot
             bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode;
 
             if (isSteamGuard || is2FA) {
-                Console.WriteLine("This account is SteamGuard protected!");
+                Log("This account is SteamGuard protected!");
 
                 if (is2FA) {
                     Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
@@ -124,29 +154,31 @@ namespace KeyBot
                 } else {
                     Console.Write("Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
                     AuthCode = Console.ReadLine();
-                }
+                }                
                 return;
             }
 
             if (callback.Result != EResult.OK) {
-                Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
+                Log(string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
                 IsRunning = false;
                 return;
             }
 
-            Console.WriteLine("Successfully logged on!");
+            Log("Successfully logged on!");
+            UserNonce = callback.WebAPIUserNonce;
 
-            // at this point, we'd be able to perform actions on Steam
+            // at this point, we'd be able to perform actions on Steam            
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Console.WriteLine("Logged off of Steam: {0}", callback.Result);
+            RetryLogin = callback.Result != EResult.LogonSessionReplaced;
+            Log("Logged off of Steam: " + callback.Result);
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
-            Console.WriteLine("Updating sentryfile...");
+            Log("Updating sentryfile...");
 
             byte[] sentryHash = CryptoHelper.SHAHash(callback.Data);
 
@@ -174,7 +206,103 @@ namespace KeyBot
                 SentryFileHash = sentryHash,
             });
 
-            Console.WriteLine("Done!");
+            Log("Done!");
+        }
+
+        private void OnLoginKey(SteamUser.LoginKeyCallback callback)
+        {
+            UniqueID = callback.UniqueID.ToString();
+            UserWebLogon();
+        } 
+
+        private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
+        {
+            if (callback.Result == EResult.OK) {
+                Log("Received new WebAPIUserNonce.");
+                UserNonce = callback.Nonce;
+                UserWebLogon();
+            }
+        }
+        
+        #endregion Logon
+               
+        private void UserWebLogon()
+        {
+            bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, out SessionID, out Token, out TokenSecure, UserNonce);
+
+            if (authd) {
+                Log("Web authenticated!");
+                OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);
+                OfferManager.OnNewTradeOffer += OfferManager_OnNewTradeOffer;
+                StartTradeChecking();
+            } else {
+                Log("Web authentication failed");
+            }
+        }
+
+        public void StartTradeChecking()
+        {
+            while (IsRunning) {
+                try {
+                    CheckTrades();
+                }
+                catch (Exception e) {
+                    Log("Error while checking trades: " + e.Message);
+                }
+                Thread.Sleep(10000);
+            }
+        }
+
+        public void CheckTrades()
+        {           
+            //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=D77CDF32EAB9ADE82C4698D73C0BF2BE&get_received_offers=1&active_only=1            
+            OfferManager.GetActiveTradeOffers();
+
+            OffersResponse offers = new TradeOfferWebAPI(ApiKey).GetActiveTradeOffers(false, true, false);
+            List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));            
+            foreach(Offer o in newOffers) {                
+                int myKeyCount = o.ItemsToGive.Count(IsKey);
+                int myOtherCount = o.ItemsToGive.Count - myKeyCount;
+                int theirKeyCount = o.ItemsToReceive.Count(IsKey);
+                int theirOtherCount = o.ItemsToReceive.Count - theirKeyCount;
+
+                bool accept = theirKeyCount >= myKeyCount && myOtherCount == 0 && theirOtherCount > 0;
+
+                Log(
+                    string.Format(
+                        "Trade {0}: wants {1} keys, {2} others; gives {3} keys, {4} others. {5}",
+                        o.TradeOfferId,
+                        myKeyCount,
+                        myOtherCount,
+                        theirKeyCount,
+                        theirOtherCount,
+                        accept ? "Accept" : "No action"                    
+                    )
+                );
+                if (accept) { 
+                    //accept
+                    //TradeOffer to = null;
+                    //if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
+                    //    to.Accept();
+                    //}
+                }
+                ProcessedOffers.Add(o.TradeOfferId);
+            }
+        }
+
+        private void OfferManager_OnNewTradeOffer(TradeOffer offer)
+        {            
+        }
+
+        private bool IsKey(CEconAsset asset)
+        {
+            return KeyClassIDs.Contains(asset.ClassId) && asset.InstanceId == "143865972";
+        }
+
+
+        private void Log(string message)
+        {
+            Console.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
         }
 
     }
