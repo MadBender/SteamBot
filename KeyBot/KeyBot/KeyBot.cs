@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SteamKit2;
 using SteamTrade;
 using SteamTrade.TradeOffer;
@@ -34,17 +32,6 @@ namespace KeyBot
 
         private TradeOfferManager OfferManager;
         private HashSet<string> ProcessedOffers;
-
-        private static List<string> KeyClassIDs = new List<string>{
-            "360447207", //Phoenix key
-            "319543459", //CSGO key
-            "613613001", //Breakout key
-            "506857900", //Huntsman key
-            "319542879", //ESports key
-            "319540568", //Winter Offensive key
-            "638240119"  //Vanguard key
-        };
-
 
         public KeyBot(string login, string password, string apiKey)
         {
@@ -76,8 +63,9 @@ namespace KeyBot
 
         public void Start()
         {
-            SteamClient.Connect();
+            RetryLogin = true;
             IsRunning = true;
+            SteamClient.Connect();
             while (IsRunning) {
                 // in order for the callbacks to get routed, they need to be handled by the manager
                 CallbackManager.RunWaitCallbacks();
@@ -86,13 +74,14 @@ namespace KeyBot
 
         public void Stop()
         {
+            RetryLogin = false;
+            IsRunning = false;
             SteamClient.Disconnect();
         }
 
         #region Logon
         private void OnConnected(SteamClient.ConnectedCallback callback)
-        {
-            RetryLogin = true;
+        {            
             if (callback.Result != EResult.OK) {
                 Log("Unable to connect to Steam: " + callback.Result);
 
@@ -213,7 +202,7 @@ namespace KeyBot
         {
             UniqueID = callback.UniqueID.ToString();
             UserWebLogon();
-        } 
+        }       
 
         private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
         {
@@ -224,26 +213,24 @@ namespace KeyBot
             }
         }
         
-        #endregion Logon
-               
         private void UserWebLogon()
         {
             bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, out SessionID, out Token, out TokenSecure, UserNonce);
-
             if (authd) {
-                Log("Web authenticated!");
-                OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);
-                OfferManager.OnNewTradeOffer += OfferManager_OnNewTradeOffer;
+                Log("Web authenticated");
                 StartTradeChecking();
             } else {
                 Log("Web authentication failed");
             }
         }
 
+        #endregion Logon              
+
         public void StartTradeChecking()
         {
+            OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);                
             while (IsRunning) {
-                try {
+                try {                    
                     CheckTrades();
                 }
                 catch (Exception e) {
@@ -255,54 +242,62 @@ namespace KeyBot
 
         public void CheckTrades()
         {           
-            //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=D77CDF32EAB9ADE82C4698D73C0BF2BE&get_received_offers=1&active_only=1            
-            OfferManager.GetActiveTradeOffers();
-
+            //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = new TradeOfferWebAPI(ApiKey).GetActiveTradeOffers(false, true, false);
             List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));            
-            foreach(Offer o in newOffers) {                
-                int myKeyCount = o.ItemsToGive.Count(IsKey);
-                int myOtherCount = o.ItemsToGive.Count - myKeyCount;
-                int theirKeyCount = o.ItemsToReceive.Count(IsKey);
-                int theirOtherCount = o.ItemsToReceive.Count - theirKeyCount;
-
-                bool accept = theirKeyCount >= myKeyCount && myOtherCount == 0 && theirOtherCount > 0;
-
-                Log(
-                    string.Format(
-                        "Trade {0}: wants {1} keys, {2} others; gives {3} keys, {4} others. {5}",
-                        o.TradeOfferId,
-                        myKeyCount,
-                        myOtherCount,
-                        theirKeyCount,
-                        theirOtherCount,
-                        accept ? "Accept" : "No action"                    
-                    )
-                );
-                if (accept) { 
-                    //accept
-                    //TradeOffer to = null;
-                    //if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
-                    //    to.Accept();
-                    //}
-                }
-                ProcessedOffers.Add(o.TradeOfferId);
+            foreach(Offer o in newOffers) {
+                CheckOffer(o);
             }
         }
 
-        private void OfferManager_OnNewTradeOffer(TradeOffer offer)
-        {            
+        private void CheckOffer(Offer o)
+        {
+            int myKeyCount = o.ItemsToGive.Count(IsKey);
+            int myOtherCount = o.ItemsToGive.Count - myKeyCount;
+            int theirKeyCount = o.ItemsToReceive.Count(IsKey);
+            int theirOtherCount = o.ItemsToReceive.Count - theirKeyCount;
+
+            bool accept = theirKeyCount >= myKeyCount && myOtherCount == 0 && theirOtherCount > 0;
+
+            Log(
+                string.Format(
+                    "Trade {0}: wants {1} keys, {2} others; gives {3} keys, {4} others. {5}",
+                    o.TradeOfferId,
+                    myKeyCount,
+                    myOtherCount,
+                    theirKeyCount,
+                    theirOtherCount,
+                    accept ? "Accept" : "No action"
+                )
+            );
+            if (accept) {
+                //accept
+                //TradeOffer to = null;
+                //if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
+                //    to.Accept();
+                //}
+            }
+            ProcessedOffers.Add(o.TradeOfferId);
         }
+
+        private static List<string> KeyClassIDs = new List<string>{
+            "360447207", //Phoenix key
+            "319543459", //CSGO key
+            "613613001", //Breakout key
+            "506857900", //Huntsman key
+            "319542879", //ESports key
+            "319540568", //Winter Offensive key
+            "638240119"  //Vanguard key
+        };
 
         private bool IsKey(CEconAsset asset)
         {
             return KeyClassIDs.Contains(asset.ClassId) && asset.InstanceId == "143865972";
         }
 
-
         private void Log(string message)
         {
-            Console.WriteLine(DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + " " + message);
+            Console.WriteLine(DateTime.Now.ToString("MM/dd HH:mm:ss") + " " + message);
         }
 
     }
