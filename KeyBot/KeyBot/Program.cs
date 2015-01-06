@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Text;
+using System.Threading;
 using KeyBot.Properties;
 
 namespace KeyBot
@@ -21,8 +18,7 @@ namespace KeyBot
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
             KeyBot bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey);
             bot.Start();
-            Console.WriteLine("Press any key");
-            Console.ReadKey(true);
+            Thread.Sleep(Timeout.Infinite);
         }
     }
 }

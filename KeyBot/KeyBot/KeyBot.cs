@@ -17,8 +17,7 @@ namespace KeyBot
         private SteamClient SteamClient;
         private SteamTrading SteamTrade;
         private SteamUser SteamUser;
-        private CallbackManager CallbackManager;
-        private bool IsRunning;
+        private CallbackManager CallbackManager;        
 
         private string TwoFactorAuth;
         private string AuthCode;
@@ -32,6 +31,10 @@ namespace KeyBot
 
         private TradeOfferManager OfferManager;
         private HashSet<string> ProcessedOffers;
+
+        //bot job
+        private ManualResetEventSlim StopEvent;
+        private ManualResetEventSlim StoppedEvent;      
 
         public KeyBot(string login, string password, string apiKey)
         {
@@ -56,26 +59,34 @@ namespace KeyBot
             // this callback is triggered when the steam servers wish for the client to store the sentry file
             new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
             new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
-            new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
-
-            ProcessedOffers = new HashSet<string>();
+            new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);                       
         }
 
         public void Start()
         {
-            RetryLogin = true;
-            IsRunning = true;
-            SteamClient.Connect();
-            while (IsRunning) {
-                // in order for the callbacks to get routed, they need to be handled by the manager
-                CallbackManager.RunWaitCallbacks();
-            }
+            new Thread(() => {
+                RetryLogin = true;
+                StopEvent = new ManualResetEventSlim();
+                SteamClient.Connect();
+                while (!StopEvent.IsSet) {
+                    // in order for the callbacks to get routed, they need to be handled by the manager
+                    CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                }
+            }).Start();
         }
 
         public void Stop()
         {
             RetryLogin = false;
-            IsRunning = false;
+            StopInternal();
+        }
+
+        private void StopInternal()
+        {
+            StopEvent.Set();
+            if (StoppedEvent != null) {
+                StoppedEvent.Wait();
+            }
             SteamClient.Disconnect();
         }
 
@@ -84,8 +95,7 @@ namespace KeyBot
         {            
             if (callback.Result != EResult.OK) {
                 Log("Unable to connect to Steam: " + callback.Result);
-
-                IsRunning = false;
+                StopEvent.Set();
                 return;
             }
 
@@ -120,12 +130,13 @@ namespace KeyBot
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {            
             Log("Disconnected from Steam");
+            StopInternal();
             if (RetryLogin) {
                 // after recieving an AccountLogonDenied, we'll be disconnected from steam
                 // so after we read an authcode from the user, we need to reconnect to begin the logon flow again
                 Thread.Sleep(2000);
                 Log("Reconnecting");
-                SteamClient.Connect();
+                Start();
             }
         }
 
@@ -142,14 +153,14 @@ namespace KeyBot
                     TwoFactorAuth = Console.ReadLine();
                 } else {
                     Console.Write("Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
-                    AuthCode = Console.ReadLine();
+                    AuthCode = Console.ReadLine().ToUpperInvariant();
                 }                
                 return;
             }
 
             if (callback.Result != EResult.OK) {
                 Log(string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
-                IsRunning = false;
+                StopEvent.Set();
                 return;
             }
 
@@ -218,7 +229,8 @@ namespace KeyBot
             bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, out SessionID, out Token, out TokenSecure, UserNonce);
             if (authd) {
                 Log("Web authenticated");
-                StartTradeChecking();
+                Log("Starting trade checking");
+                new Thread(TradeCheckingProc).Start();                
             } else {
                 Log("Web authentication failed");
             }
@@ -226,18 +238,22 @@ namespace KeyBot
 
         #endregion Logon              
 
-        public void StartTradeChecking()
+        private void TradeCheckingProc()
         {
+            StoppedEvent = new ManualResetEventSlim();
+            ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);                
-            while (IsRunning) {
-                try {                    
+            while (!StopEvent.IsSet) {
+                try {
+                    Log("Checking trades");
                     CheckTrades();
                 }
                 catch (Exception e) {
                     Log("Error while checking trades: " + e.Message);
                 }
-                Thread.Sleep(10000);
-            }
+                StopEvent.Wait(10000);
+            }            
+            StoppedEvent.Set();            
         }
 
         public void CheckTrades()
