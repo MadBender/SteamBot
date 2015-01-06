@@ -245,7 +245,7 @@ namespace KeyBot
             OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);                
             while (!StopEvent.IsSet) {
                 try {
-                    Log("Checking trades");
+                    //Log("Checking trades");
                     CheckTrades();
                 }
                 catch (Exception e) {
