@@ -251,7 +251,7 @@ namespace KeyBot
                 catch (Exception e) {
                     Log("Error while checking trades: " + e.Message);
                 }
-                StopEvent.Wait(10000);
+                StopEvent.Wait(20000);
             }            
             StoppedEvent.Set();            
         }
