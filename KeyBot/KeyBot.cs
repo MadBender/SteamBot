@@ -288,10 +288,14 @@ namespace KeyBot
             );
             if (accept) {
                 //accept
-                //TradeOffer to = null;
-                //if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
-                //    to.Accept();
-                //}
+                Log("Accepting " + o.TradeOfferId);
+                TradeOffer to = null;
+                if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
+                    to.Accept();
+                    Log(o.TradeOfferId + " accepted");
+                } else {
+                    Log("Can't accept " + o.TradeOfferId);
+                }
             }
             ProcessedOffers.Add(o.TradeOfferId);
         }
