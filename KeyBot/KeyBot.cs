@@ -260,9 +260,11 @@ namespace KeyBot
         {           
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = new TradeOfferWebAPI(ApiKey).GetActiveTradeOffers(false, true, false);
-            List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));            
-            foreach(Offer o in newOffers) {
-                CheckOffer(o);
+            if (offers.TradeOffersReceived != null) {
+                List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
+                foreach (Offer o in newOffers) {
+                    CheckOffer(o);
+                }
             }
         }
 
