@@ -40,31 +40,31 @@ namespace KeyBot
         {
             Login = login;
             Password = password;
-            ApiKey = apiKey;
-            SteamClient = new SteamClient();
-           // SteamClient.AddHandler(new SteamNotificationHandler());
-            SteamTrade = SteamClient.GetHandler<SteamTrading>();            
-            SteamUser = SteamClient.GetHandler<SteamUser>();
-
-            CallbackManager = new CallbackManager(SteamClient);
-            
-            // register a few callbacks we're interested in
-            // these are registered upon creation to a callback manager, which will then route the callbacks
-            // to the functions specified
-            new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
-
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
-            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
-            // this callback is triggered when the steam servers wish for the client to store the sentry file
-            new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
-            new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
-            new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);                       
+            ApiKey = apiKey;                                   
         }
 
         public void Start()
         {
             new Thread(() => {
+                SteamClient = new SteamClient();                
+                SteamTrade = SteamClient.GetHandler<SteamTrading>();
+                SteamUser = SteamClient.GetHandler<SteamUser>();
+
+                CallbackManager = new CallbackManager(SteamClient);
+
+                // register a few callbacks we're interested in
+                // these are registered upon creation to a callback manager, which will then route the callbacks
+                // to the functions specified
+                new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
+                new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
+
+                new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
+                new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
+                // this callback is triggered when the steam servers wish for the client to store the sentry file
+                new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
+                new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
+                new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
+
                 RetryLogin = true;
                 StopEvent = new ManualResetEventSlim();
                 SteamClient.Connect();
@@ -134,7 +134,7 @@ namespace KeyBot
             if (RetryLogin) {
                 // after recieving an AccountLogonDenied, we'll be disconnected from steam
                 // so after we read an authcode from the user, we need to reconnect to begin the logon flow again
-                Thread.Sleep(2000);
+                Thread.Sleep(5000);
                 Log("Reconnecting");
                 Start();
             }
@@ -277,13 +277,13 @@ namespace KeyBot
 
             Log(
                 string.Format(
-                    "Trade {0}: wants {1} keys, {2} others; gives {3} keys, {4} others. {5}",
+                    "Trade {0}: wants {1} keys, {2} others; offers {3} keys, {4} others. {5}",
                     o.TradeOfferId,
                     myKeyCount,
                     myOtherCount,
                     theirKeyCount,
                     theirOtherCount,
-                    accept ? "Accept" : "No action"
+                    accept ? "Accept" : "Ignore"
                 )
             );
             if (accept) {
@@ -308,7 +308,7 @@ namespace KeyBot
 
         private bool IsKey(CEconAsset asset)
         {
-            return KeyClassIDs.Contains(asset.ClassId) && asset.InstanceId == "143865972";
+            return KeyClassIDs.Contains(asset.ClassId) && asset.InstanceId == "143865972" && asset.AppId == "730";
         }
 
         private void Log(string message)
