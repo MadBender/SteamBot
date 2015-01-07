@@ -270,10 +270,12 @@ namespace KeyBot
 
         private void CheckOffer(Offer o)
         {
-            int myKeyCount = o.ItemsToGive.Count(IsKey);
-            int myOtherCount = o.ItemsToGive.Count - myKeyCount;
-            int theirKeyCount = o.ItemsToReceive.Count(IsKey);
-            int theirOtherCount = o.ItemsToReceive.Count - theirKeyCount;
+            List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
+            List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
+            int myKeyCount = toGive.Count(IsKey);
+            int myOtherCount = toGive.Count - myKeyCount;
+            int theirKeyCount = toReceive.Count(IsKey);
+            int theirOtherCount = toReceive.Count - theirKeyCount;
 
             bool accept = theirKeyCount >= myKeyCount && myOtherCount == 0 && theirOtherCount > 0;
 
@@ -321,6 +323,5 @@ namespace KeyBot
         {
             Console.WriteLine(DateTime.Now.ToString("MM/dd HH:mm:ss") + " " + message);
         }
-
     }
 }
