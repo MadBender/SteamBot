@@ -29,4 +29,4 @@ packages
 
 # Allow NuGet specific exes and dlls
 !.nuget/Microsoft.Build.dll
-KeyBot/KeyBot/app.config
+KeyBot/app.config
