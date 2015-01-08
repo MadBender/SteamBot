@@ -30,6 +30,7 @@ namespace KeyBot
         private string UserNonce;
 
         private TradeOfferManager OfferManager;
+        private TradeOfferWebAPI TradeWebApi;
         private HashSet<string> ProcessedOffers;
 
         //bot job
@@ -40,7 +41,8 @@ namespace KeyBot
         {
             Login = login;
             Password = password;
-            ApiKey = apiKey;                                   
+            ApiKey = apiKey;
+            TradeWebApi = new TradeOfferWebAPI(ApiKey);
         }
 
         public void Start()
@@ -259,7 +261,7 @@ namespace KeyBot
         public void CheckTrades()
         {           
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
-            OffersResponse offers = new TradeOfferWebAPI(ApiKey).GetActiveTradeOffers(false, true, false);
+            OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, false);
             if (offers.TradeOffersReceived != null) {
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
@@ -295,10 +297,14 @@ namespace KeyBot
                 Log("Accepting " + o.TradeOfferId);
                 TradeOffer to = null;
                 if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
-                    to.Accept();
-                    Log(o.TradeOfferId + " accepted");
+                    if (to.Accept()) {
+                        Log(o.TradeOfferId + " accepted");
+                    } else { 
+                        TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
+                        Log("Can't accept " + o.TradeOfferId + ". Offer state is " + curState);                    
+                    }
                 } else {
-                    Log("Can't accept " + o.TradeOfferId);
+                    Log("Offer " + o.TradeOfferId + " not found");
                 }
             }
             ProcessedOffers.Add(o.TradeOfferId);
