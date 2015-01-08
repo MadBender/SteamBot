@@ -16,7 +16,7 @@ namespace KeyBot
             var settings = Settings.Default;
             // Hacking around https
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
-            KeyBot bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey);
+            KeyBot bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey, settings.UpdateInterval);
             bot.Start();
             Thread.Sleep(Timeout.Infinite);
         }

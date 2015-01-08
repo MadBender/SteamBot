@@ -14,6 +14,7 @@ namespace KeyBot
         private string Login;
         private string Password;
         private string ApiKey;
+        private TimeSpan UpdateInterval;
         private SteamClient SteamClient;
         private SteamTrading SteamTrade;
         private SteamUser SteamUser;
@@ -37,11 +38,12 @@ namespace KeyBot
         private ManualResetEventSlim StopEvent;
         private ManualResetEventSlim StoppedEvent;      
 
-        public KeyBot(string login, string password, string apiKey)
+        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval)
         {
             Login = login;
             Password = password;
             ApiKey = apiKey;
+            UpdateInterval = updateInterval;
             TradeWebApi = new TradeOfferWebAPI(ApiKey);
         }
 
@@ -253,7 +255,7 @@ namespace KeyBot
                 catch (Exception e) {
                     Log("Error while checking trades: " + e.Message);
                 }
-                StopEvent.Wait(20000);
+                StopEvent.Wait(UpdateInterval);
             }            
             StoppedEvent.Set();            
         }

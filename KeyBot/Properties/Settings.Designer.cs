@@ -49,5 +49,14 @@ namespace KeyBot.Properties {
                 return ((string)(this["ApiKey"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("00:00:10")]
+        public global::System.TimeSpan UpdateInterval {
+            get {
+                return ((global::System.TimeSpan)(this["UpdateInterval"]));
+            }
+        }
     }
 }
