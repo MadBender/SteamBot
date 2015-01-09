@@ -85,6 +85,11 @@ namespace KeyBot
             StopInternal();
         }
 
+        public void Logoff()
+        {            
+            SteamUser.LogOff();
+        }
+
         private void StopInternal()
         {
             StopEvent.Set();
@@ -128,7 +133,7 @@ namespace KeyBot
                 // our subsequent logons use the hash of the sentry file as proof of ownership of the file
                 // this will also be null for our first (no authcode) and second (authcode only) logon attempts
                 SentryFileHash = sentryHash,
-            });
+            });            
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -305,6 +310,11 @@ namespace KeyBot
                         TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
                         Log("Can't accept " + o.TradeOfferId + ". Offer state is " + curState);
                         //do not add to processed, return and retry next time
+
+                        //it seems there is Steam accept error for some reason
+                        //try to logoff
+                        Logoff();
+                        //it will re-log itself
                         return;
                     }
                 } else {
