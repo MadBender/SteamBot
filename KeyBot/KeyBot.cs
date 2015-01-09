@@ -342,7 +342,7 @@ namespace KeyBot
 
         private void Log(string message)
         {
-            Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH:mm:ss") + " " + message);
+            Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH\\:mm\\:ss") + " " + message);
         }
     }
 }
