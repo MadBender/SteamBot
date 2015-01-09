@@ -331,7 +331,8 @@ namespace KeyBot
             "506857900", //Huntsman key
             "319542879", //ESports key
             "319540568", //Winter Offensive key
-            "638240119"  //Vanguard key
+            "638240119", //Vanguard key
+            "720270833"  //Chroma key
         };
 
         private bool IsKey(CEconAsset asset)
@@ -341,7 +342,7 @@ namespace KeyBot
 
         private void Log(string message)
         {
-            Console.WriteLine(DateTime.Now.ToString("MM/dd HH:mm:ss") + " " + message);
+            Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH:mm:ss") + " " + message);
         }
     }
 }
