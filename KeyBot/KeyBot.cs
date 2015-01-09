@@ -303,7 +303,9 @@ namespace KeyBot
                         Log(o.TradeOfferId + " accepted");
                     } else { 
                         TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
-                        Log("Can't accept " + o.TradeOfferId + ". Offer state is " + curState);                    
+                        Log("Can't accept " + o.TradeOfferId + ". Offer state is " + curState);
+                        //do not add to processed, return and retry next time
+                        return;
                     }
                 } else {
                     Log("Offer " + o.TradeOfferId + " not found");
