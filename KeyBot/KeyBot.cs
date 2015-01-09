@@ -21,8 +21,7 @@ namespace KeyBot
         private CallbackManager CallbackManager;        
 
         private string TwoFactorAuth;
-        private string AuthCode;
-        private bool RetryLogin;
+        private string AuthCode;        
 
         private string UniqueID;
         private string SessionID;
@@ -36,7 +35,10 @@ namespace KeyBot
 
         //bot job
         private ManualResetEventSlim StopEvent;
-        private ManualResetEventSlim StoppedEvent;      
+        private ManualResetEventSlim TradeCheckingStoppedEvent;
+        private ManualResetEventSlim BotStoppedEvent;
+
+        public EResult LogoffReason { get; private set; }
 
         public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval)
         {
@@ -45,60 +47,69 @@ namespace KeyBot
             ApiKey = apiKey;
             UpdateInterval = updateInterval;
             TradeWebApi = new TradeOfferWebAPI(ApiKey);
-        }
+            BotStoppedEvent = new ManualResetEventSlim();
+        }        
 
         public void Start()
         {
             new Thread(() => {
-                SteamClient = new SteamClient();                
-                SteamTrade = SteamClient.GetHandler<SteamTrading>();
-                SteamUser = SteamClient.GetHandler<SteamUser>();
+                SteamClient = new SteamClient();
+                try {
+                    SteamTrade = SteamClient.GetHandler<SteamTrading>();
+                    SteamUser = SteamClient.GetHandler<SteamUser>();
 
-                CallbackManager = new CallbackManager(SteamClient);
+                    CallbackManager = new CallbackManager(SteamClient);
 
-                // register a few callbacks we're interested in
-                // these are registered upon creation to a callback manager, which will then route the callbacks
-                // to the functions specified
-                new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
-                new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
+                    // register a few callbacks we're interested in
+                    // these are registered upon creation to a callback manager, which will then route the callbacks
+                    // to the functions specified
+                    new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
+                    new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
 
-                new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
-                new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
-                // this callback is triggered when the steam servers wish for the client to store the sentry file
-                new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
-                new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
-                new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
-
-                RetryLogin = true;
-                StopEvent = new ManualResetEventSlim();
-                SteamClient.Connect();
-                while (!StopEvent.IsSet) {
-                    // in order for the callbacks to get routed, they need to be handled by the manager
-                    CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                    new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
+                    new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
+                    // this callback is triggered when the steam servers wish for the client to store the sentry file
+                    new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
+                    new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
+                    new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
+                                        
+                    StopEvent = new ManualResetEventSlim();
+                    SteamClient.Connect();
+                    while (!StopEvent.IsSet) {
+                        // in order for the callbacks to get routed, they need to be handled by the manager
+                        CallbackManager.RunWaitCallbacks();
+                    }
+                }
+                catch (Exception e) {
+                    Log("Main thread exception: " + e.Message);
+                    Stop();
                 }
             }).Start();
         }
 
         public void Stop()
+        {  
+            StopEvent.Set();
+            if (TradeCheckingStoppedEvent != null) {
+                TradeCheckingStoppedEvent.Wait();
+            }
+            if (SteamClient.IsConnected) {
+                SteamClient.Disconnect();
+            }
+            BotStoppedEvent.Set();
+        }
+
+        public void Wait()
         {
-            RetryLogin = false;
-            StopInternal();
+            BotStoppedEvent.Wait();
         }
 
         public void Logoff()
         {            
             SteamUser.LogOff();
+            Stop();
         }
-
-        private void StopInternal()
-        {
-            StopEvent.Set();
-            if (StoppedEvent != null) {
-                StoppedEvent.Wait();
-            }
-            SteamClient.Disconnect();
-        }
-
+        
         #region Logon
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {            
@@ -139,14 +150,7 @@ namespace KeyBot
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {            
             Log("Disconnected from Steam");
-            StopInternal();
-            if (RetryLogin) {
-                // after recieving an AccountLogonDenied, we'll be disconnected from steam
-                // so after we read an authcode from the user, we need to reconnect to begin the logon flow again
-                Thread.Sleep(5000);
-                Log("Reconnecting");
-                Start();
-            }
+            Stop();            
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -180,9 +184,9 @@ namespace KeyBot
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
-        {
-            RetryLogin = callback.Result != EResult.LogonSessionReplaced;
-            Log("Logged off of Steam: " + callback.Result);
+        {            
+            LogoffReason = callback.Result;
+            Log("Logged off from Steam: " + callback.Result);
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
@@ -249,7 +253,7 @@ namespace KeyBot
 
         private void TradeCheckingProc()
         {
-            StoppedEvent = new ManualResetEventSlim();
+            TradeCheckingStoppedEvent = new ManualResetEventSlim();
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);                
             while (!StopEvent.IsSet) {
@@ -262,7 +266,7 @@ namespace KeyBot
                 }
                 StopEvent.Wait(UpdateInterval);
             }            
-            StoppedEvent.Set();            
+            TradeCheckingStoppedEvent.Set();            
         }
 
         public void CheckTrades()
