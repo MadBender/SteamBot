@@ -16,6 +16,7 @@ namespace KeyBot
         private string ApiKey;
         private TimeSpan UpdateInterval;
         private SteamClient SteamClient;
+        private SteamWeb SteamWeb;
         private SteamTrading SteamTrade;
         private SteamUser SteamUser;
         private CallbackManager CallbackManager;        
@@ -23,10 +24,7 @@ namespace KeyBot
         private string TwoFactorAuth;
         private string AuthCode;        
 
-        private string UniqueID;
-        private string SessionID;
-        private string Token;
-        private string TokenSecure;
+        private string UniqueID;        
         private string UserNonce;
 
         private TradeOfferManager OfferManager;
@@ -46,14 +44,15 @@ namespace KeyBot
             Password = password;
             ApiKey = apiKey;
             UpdateInterval = updateInterval;
-            TradeWebApi = new TradeOfferWebAPI(ApiKey);
+            SteamWeb = new SteamWeb();
+            TradeWebApi = new TradeOfferWebAPI(ApiKey, SteamWeb);
             BotStoppedEvent = new ManualResetEventSlim();
         }        
 
         public void Start()
         {
             new Thread(() => {
-                SteamClient = new SteamClient();
+                SteamClient = new SteamClient();                
                 try {
                     SteamTrade = SteamClient.GetHandler<SteamTrading>();
                     SteamUser = SteamClient.GetHandler<SteamUser>();
@@ -239,7 +238,7 @@ namespace KeyBot
         
         private void UserWebLogon()
         {
-            bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, out SessionID, out Token, out TokenSecure, UserNonce);
+            bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, UserNonce);
             if (authd) {
                 Log("Web authenticated");
                 Log("Starting trade checking");
@@ -255,7 +254,7 @@ namespace KeyBot
         {
             TradeCheckingStoppedEvent = new ManualResetEventSlim();
             ProcessedOffers = new HashSet<string>();
-            OfferManager = new TradeOfferManager(ApiKey, SessionID, Token, TokenSecure);                
+            OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
             while (!StopEvent.IsSet) {
                 try {
                     //Log("Checking trades");
