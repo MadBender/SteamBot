@@ -255,6 +255,7 @@ namespace KeyBot
             TradeCheckingStoppedEvent = new ManualResetEventSlim();
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
+            
             while (!StopEvent.IsSet) {
                 try {
                     //Log("Checking trades");
@@ -307,17 +308,16 @@ namespace KeyBot
                 Log("Accepting " + o.TradeOfferId);
                 TradeOffer to = null;
                 if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
-                    if (to.Accept()) {
+                    TradeOfferAcceptResponse acceptResp = to.Accept();
+                    if (acceptResp.Accepted) {
                         Log(o.TradeOfferId + " accepted");
                     } else { 
                         TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
-                        Log("Can't accept " + o.TradeOfferId + ". Offer state is " + curState);
+                        Log(string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError));
                         //do not add to processed, return and retry next time
-
                         //it seems there is Steam accept error for some reason
-                        //try to logoff
-                        Logoff();
-                        //it will re-log itself
+                        //try to logoff, bot manager should detect this and restart the bot
+                        Logoff();                        
                         return;
                     }
                 } else {
