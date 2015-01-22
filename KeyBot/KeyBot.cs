@@ -89,6 +89,7 @@ namespace KeyBot
         public void Stop()
         {  
             StopEvent.Set();
+            //do not call from trade checking thread
             if (TradeCheckingStoppedEvent != null) {
                 TradeCheckingStoppedEvent.Wait();
             }
@@ -261,6 +262,11 @@ namespace KeyBot
                     //Log("Checking trades");
                     CheckTrades();
                 }
+                catch (TradeAcceptException) { 
+                    //terminate the loop
+                    TradeCheckingStoppedEvent.Set();
+                    Logoff();
+                }
                 catch (Exception e) {
                     Log("Error while checking trades: " + e.Message);
                 }
@@ -269,8 +275,8 @@ namespace KeyBot
             TradeCheckingStoppedEvent.Set();            
         }
 
-        public void CheckTrades()
-        {           
+        private void CheckTrades()
+        {            
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, false);
             if (offers.TradeOffersReceived != null) {
@@ -316,9 +322,7 @@ namespace KeyBot
                         Log(string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError));
                         //do not add to processed, return and retry next time
                         //it seems there is Steam accept error for some reason
-                        //try to logoff, bot manager should detect this and restart the bot
-                        Logoff();                        
-                        return;
+                        throw new TradeAcceptException(acceptResp.TradeError);
                     }
                 } else {
                     Log("Offer " + o.TradeOfferId + " not found");
