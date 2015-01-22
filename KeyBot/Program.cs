@@ -22,23 +22,30 @@ namespace KeyBot
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
 
             Thread botThread = new Thread(() => {
+                string authCode = null;
+                string twoFactorAuth = null;
                 while (true) {
                     Console.WriteLine("\nStarting the bot");
-                    Bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey, settings.UpdateInterval);
+                    Bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey, settings.UpdateInterval) { 
+                        AuthCode = authCode,
+                        TwoFactorAuth = twoFactorAuth
+                    };
                     Bot.Start();
                     Bot.Wait();
                     if (Bot.LogoffReason == EResult.LogonSessionReplaced) {
                         Console.WriteLine("No more bots will be created");
                         return;
                     }
+                    authCode = Bot.AuthCode;
+                    twoFactorAuth = Bot.TwoFactorAuth;
                     Thread.Sleep(10000);
                 }
             });
             botThread.Start();
-
-            while (true) {
+            botThread.Join();
+            /*while (true) {
                 HandleCommand(Console.ReadLine());
-            }
+            }*/
         }
 
         private static void HandleCommand(string command)

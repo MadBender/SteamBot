@@ -21,8 +21,8 @@ namespace KeyBot
         private SteamUser SteamUser;
         private CallbackManager CallbackManager;        
 
-        private string TwoFactorAuth;
-        private string AuthCode;        
+        public string TwoFactorAuth { get; set; }
+        public string AuthCode { get;set; }
 
         private string UniqueID;        
         private string UserNonce;
