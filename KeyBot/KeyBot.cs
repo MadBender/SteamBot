@@ -258,7 +258,7 @@ namespace KeyBot
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
             
             while (!StopEvent.IsSet) {
-                try {
+                try {                    
                     //Log("Checking trades");
                     CheckTrades();
                 }
@@ -268,7 +268,7 @@ namespace KeyBot
                     Logoff();
                 }
                 catch (Exception e) {
-                    Log("Error while checking trades: " + e.Message);
+                    Log("Error while checking trades:\n" + ExceptionHelper.GetExceptionText(e, true, true));
                 }
                 StopEvent.Wait(UpdateInterval);
             }            
@@ -319,7 +319,7 @@ namespace KeyBot
                         Log(o.TradeOfferId + " accepted");
                     } else { 
                         TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
-                        Log(string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError));
+                        Log(string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError ?? ""));
                         //do not add to processed, return and retry next time
                         //it seems there is Steam accept error for some reason
                         throw new TradeAcceptException(acceptResp.TradeError);
