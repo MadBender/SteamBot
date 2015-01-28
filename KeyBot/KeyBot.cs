@@ -187,6 +187,7 @@ namespace KeyBot
         {            
             LogoffReason = callback.Result;
             Log("Logged off from Steam: " + callback.Result);
+            Stop();
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
