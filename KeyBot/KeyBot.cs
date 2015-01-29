@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using SteamKit2;
 using SteamTrade;
@@ -279,16 +280,17 @@ namespace KeyBot
         private void CheckTrades()
         {            
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
-            OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, false);
+            OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, true);
             if (offers.TradeOffersReceived != null) {
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
-                    CheckOffer(o);
+                    CheckOffer(o, offers.Descriptions);
                 }
             }
         }
+        
 
-        private void CheckOffer(Offer o)
+        private void CheckOffer(Offer o, List<AssetDescription> descriptions)
         {
             List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
             List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
@@ -301,12 +303,10 @@ namespace KeyBot
 
             Log(
                 string.Format(
-                    "Trade {0}: wants {1} keys, {2} others; offers {3} keys, {4} others. {5}",
+                    "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",
                     o.TradeOfferId,
-                    myKeyCount,
-                    myOtherCount,
-                    theirKeyCount,
-                    theirOtherCount,
+                    GetOfferText(toGive, descriptions),
+                    GetOfferText(toReceive, descriptions),
                     accept ? "Accept" : "Ignore"
                 )
             );
@@ -351,6 +351,27 @@ namespace KeyBot
         private void Log(string message)
         {
             Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH\\:mm\\:ss") + " " + message);
+        }
+
+        private string GetOfferText(List<CEconAsset> assets, List<AssetDescription> descriptions)
+        {
+            if (assets == null) {
+                return "";
+            }
+            descriptions = descriptions ?? new List<AssetDescription>();
+
+            var groups = assets
+                .GroupBy(a => new { AppId = int.Parse(a.AppId), a.ClassId, a.InstanceId })
+                .OrderByDescending(g => g.Count());
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var g in groups) { 
+                var key = g.Key;
+                AssetDescription desc = descriptions.Find(d => d.AppId == key.AppId && d.ClassId == key.ClassId && d.InstanceId == key.InstanceId);
+                sb.AppendFormat("{0,4} {1}\n", g.Count(), desc != null ? desc.MarketName : "Unknown");
+            }
+            return sb.ToString();
         }
     }
 }

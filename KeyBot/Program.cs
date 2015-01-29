@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using KeyBot.Properties;
 using SteamKit2;
@@ -16,6 +17,8 @@ namespace KeyBot
 
         static void Main(string[] args)
         {
+            Console.OutputEncoding = Encoding.Unicode;
+     
             CurrentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             var settings = Settings.Default;
             // Hacking around https
