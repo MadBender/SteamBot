@@ -333,14 +333,14 @@ namespace KeyBot
         }
 
         private static List<string> KeyClassIDs = new List<string>{
-            "360447207", //Phoenix key
-            "319543459", //CSGO key
-            "613613001", //Breakout key
-            "506857900", //Huntsman key
-            "319542879", //ESports key
-            "319540568", //Winter Offensive key
-            "638240119", //Vanguard key
-            "720270833"  //Chroma key
+            "360448780", //Phoenix key
+            "186150629", //CSGO key
+            "613589848", //Breakout key
+            "506856210", //Huntsman key
+            "186150630", //ESports key
+            "259019412", //Winter Offensive key
+            "638243112", //Vanguard key
+            "721248158"  //Chroma key
         };
 
         private bool IsKey(CEconAsset asset)
