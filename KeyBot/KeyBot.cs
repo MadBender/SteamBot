@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using KeyBot.OfferCheckers;
 using SteamKit2;
 using SteamTrade;
 using SteamTrade.TradeOffer;
@@ -258,11 +259,16 @@ namespace KeyBot
             TradeCheckingStoppedEvent = new ManualResetEventSlim();
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
-            
+
+            List<OfferChecker> checkers = new List<OfferChecker>{
+                new FeeKeyOfferChecker(),
+                new FreeKeyOfferChecker(new HashSet<string>{"360448780", "613589848", "506856210"})
+            };
+
             while (!StopEvent.IsSet) {
                 try {                    
                     //Log("Checking trades");
-                    CheckTrades();
+                    CheckTrades(checkers);
                 }
                 catch (TradeAcceptException) { 
                     //terminate the loop
@@ -277,30 +283,24 @@ namespace KeyBot
             TradeCheckingStoppedEvent.Set();            
         }
 
-        private void CheckTrades()
+        private void CheckTrades(IEnumerable<OfferChecker> checkers)
         {            
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, true);
             if (offers.TradeOffersReceived != null) {
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
-                    CheckOffer(o, offers.Descriptions);
+                    CheckOffer(o, offers.Descriptions, checkers);
                 }
             }
         }
         
 
-        private void CheckOffer(Offer o, List<AssetDescription> descriptions)
+        private void CheckOffer(Offer o, List<AssetDescription> descriptions, IEnumerable<OfferChecker> checkers)
         {
             List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
             List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
-            int myKeyCount = toGive.Count(IsKey);
-            int myOtherCount = toGive.Count - myKeyCount;
-            int theirKeyCount = toReceive.Count(IsKey);
-            int theirOtherCount = toReceive.Count - theirKeyCount;
-
-            bool accept = theirKeyCount >= myKeyCount && myOtherCount == 0 && theirOtherCount > 0;
-
+            bool accept = checkers.Any(c => c.CheckOffer(o));
             Log(
                 string.Format(
                     "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",
@@ -310,6 +310,7 @@ namespace KeyBot
                     accept ? "Accept" : "Ignore"
                 )
             );
+            
             if (accept) {
                 //accept
                 Log("Accepting " + o.TradeOfferId);
@@ -331,23 +332,7 @@ namespace KeyBot
             }
             ProcessedOffers.Add(o.TradeOfferId);
         }
-
-        private static List<string> KeyClassIDs = new List<string>{
-            "360448780", //Phoenix key
-            "186150629", //CSGO key
-            "613589848", //Breakout key
-            "506856210", //Huntsman key
-            "186150630", //ESports key
-            "259019412", //Winter Offensive key
-            "638243112", //Vanguard key
-            "721248158"  //Chroma key
-        };
-
-        private bool IsKey(CEconAsset asset)
-        {
-            return KeyClassIDs.Contains(asset.ClassId) && asset.InstanceId == "143865972" && asset.AppId == "730";
-        }
-
+        
         private void Log(string message)
         {
             Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH\\:mm\\:ss") + " " + message);

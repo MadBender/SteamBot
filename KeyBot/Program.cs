@@ -46,6 +46,10 @@ namespace KeyBot
             });
             botThread.Start();
             botThread.Join();
+
+            //exiting
+            Console.WriteLine("Press any key");
+            Console.ReadKey(true);
             /*while (true) {
                 HandleCommand(Console.ReadLine());
             }*/
