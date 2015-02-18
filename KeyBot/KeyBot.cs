@@ -35,7 +35,7 @@ namespace KeyBot
 
         //bot job
         private ManualResetEventSlim StopEvent;
-        private ManualResetEventSlim TradeCheckingStoppedEvent;
+        private Thread TradeCheckingThread;
         private ManualResetEventSlim BotStoppedEvent;
 
         public EResult LogoffReason { get; private set; }
@@ -53,7 +53,7 @@ namespace KeyBot
 
         public void Start()
         {
-            new Thread(() => {
+            TradeCheckingThread = new Thread(() => {
                 SteamClient = new SteamClient();                
                 try {
                     SteamTrade = SteamClient.GetHandler<SteamTrading>();
@@ -85,15 +85,16 @@ namespace KeyBot
                     Log("Main thread exception: " + e.Message);
                     Stop();
                 }
-            }).Start();
+            });
+            TradeCheckingThread.Start();
         }
 
         public void Stop()
         {  
             StopEvent.Set();
             //do not call from trade checking thread
-            if (TradeCheckingStoppedEvent != null) {
-                TradeCheckingStoppedEvent.Wait();
+            if (TradeCheckingThread != null) {
+                TradeCheckingThread.Join();
             }
             if (SteamClient.IsConnected) {
                 SteamClient.Disconnect();
@@ -117,7 +118,7 @@ namespace KeyBot
         {            
             if (callback.Result != EResult.OK) {
                 Log("Unable to connect to Steam: " + callback.Result);
-                StopEvent.Set();
+                Stop();
                 return;
             }
 
@@ -175,7 +176,7 @@ namespace KeyBot
 
             if (callback.Result != EResult.OK) {
                 Log(string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
-                StopEvent.Set();
+                Stop();
                 return;
             }
 
@@ -255,8 +256,7 @@ namespace KeyBot
         #endregion Logon              
 
         private void TradeCheckingProc()
-        {
-            TradeCheckingStoppedEvent = new ManualResetEventSlim();
+        {            
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
 
@@ -271,16 +271,14 @@ namespace KeyBot
                     CheckTrades(checkers);
                 }
                 catch (TradeAcceptException) { 
-                    //terminate the loop
-                    TradeCheckingStoppedEvent.Set();
+                    //terminate the loop                    
                     Logoff();
                 }
                 catch (Exception e) {
                     Log("Error while checking trades:\n" + ExceptionHelper.GetExceptionText(e, true, true));
                 }
                 StopEvent.Wait(UpdateInterval);
-            }            
-            TradeCheckingStoppedEvent.Set();            
+            }
         }
 
         private void CheckTrades(IEnumerable<OfferChecker> checkers)
