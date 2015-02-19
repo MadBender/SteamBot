@@ -53,7 +53,7 @@ namespace KeyBot
 
         public void Start()
         {
-            TradeCheckingThread = new Thread(() => {
+            new Thread(() => {
                 SteamClient = new SteamClient();                
                 try {
                     SteamTrade = SteamClient.GetHandler<SteamTrading>();
@@ -85,17 +85,15 @@ namespace KeyBot
                     Log("Main thread exception: " + e.Message);
                     Stop();
                 }
-            });
-            TradeCheckingThread.Start();
+            }).Start();            
         }
 
         public void Stop()
         {  
-            StopEvent.Set();
-            //do not call from trade checking thread
-            if (TradeCheckingThread != null) {
+            StopEvent.Set();            
+            if (TradeCheckingThread != null && Thread.CurrentThread != TradeCheckingThread) {
                 TradeCheckingThread.Join();
-            }
+            }            
             if (SteamClient.IsConnected) {
                 SteamClient.Disconnect();
             }
@@ -247,7 +245,8 @@ namespace KeyBot
             if (authd) {
                 Log("Web authenticated");
                 Log("Starting trade checking");
-                new Thread(TradeCheckingProc).Start();                
+                TradeCheckingThread = new Thread(TradeCheckingProc);
+                TradeCheckingThread.Start();                
             } else {
                 Log("Web authentication failed");
             }
@@ -264,7 +263,7 @@ namespace KeyBot
                 new FeeKeyOfferChecker(),
                 new FreeKeyOfferChecker(new HashSet<string>{"360448780", "613589848", "506856210"})
             };
-
+           
             while (!StopEvent.IsSet) {
                 try {                    
                     //Log("Checking trades");
