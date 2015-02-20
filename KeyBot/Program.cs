@@ -4,8 +4,11 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using AutoMapper;
+using KeyBot.Models;
 using KeyBot.Properties;
 using SteamKit2;
+using SteamTrade.TradeOffer;
 
 namespace KeyBot
 {
@@ -17,6 +20,7 @@ namespace KeyBot
 
         static void Main(string[] args)
         {
+            InitAutomapper();
             Console.OutputEncoding = Encoding.Unicode;
      
             CurrentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -65,6 +69,11 @@ namespace KeyBot
                     Console.WriteLine("Unknown command");
                     break;
             }
+        }
+
+        private static void InitAutomapper()
+        {
+            Mapper.CreateMap<CEconAsset, CEconAssetModel>();
         }
     }
 }

@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using AutoMapper;
+using KeyBot.Models;
 using KeyBot.OfferCheckers;
 using SteamKit2;
 using SteamTrade;
@@ -261,7 +263,12 @@ namespace KeyBot
 
             List<OfferChecker> checkers = new List<OfferChecker>{
                 new FeeKeyOfferChecker(),
-                new FreeKeyOfferChecker(new HashSet<string>{"360448780", "613589848", "506856210"})
+                new FreeKeyOfferChecker(
+                    new HashSet<string>{
+                        "Operation Phoenix Case Key", 
+                        "Operation Breakout Case Key", 
+                        "Huntsman Case Key"
+                    })
             };
            
             while (!StopEvent.IsSet) {
@@ -287,23 +294,21 @@ namespace KeyBot
             if (offers.TradeOffersReceived != null) {
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
-                    CheckOffer(o, offers.Descriptions, checkers);
+                    CheckOffer(new OfferModel(o, offers.Descriptions), checkers);
                 }
             }
         }
         
 
-        private void CheckOffer(Offer o, List<AssetDescription> descriptions, IEnumerable<OfferChecker> checkers)
-        {
-            List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
-            List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
+        private void CheckOffer(OfferModel o, IEnumerable<OfferChecker> checkers)
+        {            
             bool accept = checkers.Any(c => c.CheckOffer(o));
             Log(
                 string.Format(
                     "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",
                     o.TradeOfferId,
-                    GetOfferText(toGive, descriptions),
-                    GetOfferText(toReceive, descriptions),
+                    GetOfferText(o.ItemsToGive),
+                    GetOfferText(o.ItemsToReceive),
                     accept ? "Accept" : "Ignore"
                 )
             );
@@ -329,28 +334,23 @@ namespace KeyBot
             }
             ProcessedOffers.Add(o.TradeOfferId);
         }
-        
+
         private void Log(string message)
         {
             Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH\\:mm\\:ss") + " " + message);
         }
 
-        private string GetOfferText(List<CEconAsset> assets, List<AssetDescription> descriptions)
-        {
-            if (assets == null) {
-                return "";
-            }
-            descriptions = descriptions ?? new List<AssetDescription>();
-
+        private string GetOfferText(List<CEconAssetModel> assets)
+        {            
             var groups = assets
-                .GroupBy(a => new { AppId = int.Parse(a.AppId), a.ClassId, a.InstanceId })
+                .GroupBy(a => new { a.AppId, a.ClassId, a.InstanceId })
                 .OrderByDescending(g => g.Count());
 
             StringBuilder sb = new StringBuilder();
 
             foreach (var g in groups) { 
                 var key = g.Key;
-                AssetDescription desc = descriptions.Find(d => d.AppId == key.AppId && d.ClassId == key.ClassId && d.InstanceId == key.InstanceId);
+                AssetDescription desc = g.First().Description;
                 sb.AppendFormat("{0,4} {1}\n", g.Count(), desc != null ? desc.MarketName : "Unknown");
             }
             return sb.ToString();

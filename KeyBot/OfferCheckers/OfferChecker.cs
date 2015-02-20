@@ -1,45 +1,48 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SteamTrade.TradeOffer;
+using KeyBot.Models;
 
 namespace KeyBot.OfferCheckers
 {
     internal abstract class OfferChecker
     {
-        public abstract bool CheckOffer(Offer o);
+        public abstract bool CheckOffer(OfferModel o);
     }
 
     internal abstract class KeyOfferChecker: OfferChecker
     {
-        protected static HashSet<string> KeyClassIds = new HashSet<string>{
-            "360448780", //Phoenix key
-            "186150629", //CSGO key
-            "613589848", //Breakout key
-            "506856210", //Huntsman key
-            "186150630", //ESports key
-            "259019412", //Winter Offensive key
-            "638243112", //Vanguard key
-            "721248158"  //Chroma key
+        protected static HashSet<string> KeyNames = new HashSet<string>{
+            "Operation Phoenix Case Key",
+            "CS:GO Case Key",
+            "Operation Breakout Case Key",
+            "Huntsman Case Key",
+            "eSports Key",
+            "Winter Offensive Case Key",
+            "Operation Vanguard Case Key",
+            "Chroma Case Key"
         };
 
         protected const string KeyInstanceId = "143865972";
         protected const string KeyAppId = "730";
 
-        protected bool IsKey(CEconAsset asset)
+        protected bool IsKey(CEconAssetModel asset)
         {
-            return KeyClassIds.Contains(asset.ClassId) && asset.InstanceId == KeyInstanceId && asset.AppId == KeyAppId;
+            return asset.InstanceId == KeyInstanceId
+                && asset.AppId == KeyAppId
+                && asset.Description != null
+                && KeyNames.Contains(asset.Description.MarketName);
         }
     }
 
     internal class FeeKeyOfferChecker : KeyOfferChecker
     {
-        public override bool CheckOffer(Offer o)
-        {
-            List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
-            List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
-            int myKeyCount = toGive.Count(IsKey);            
-            int theirKeyCount = toReceive.Count(IsKey);            
-            return theirKeyCount >= myKeyCount && myKeyCount == toGive.Count && theirKeyCount < toReceive.Count;
+        public override bool CheckOffer(OfferModel o)
+        {        
+            int myKeyCount = o.ItemsToGive.Count(IsKey);            
+            int theirKeyCount = o.ItemsToReceive.Count(IsKey);            
+            return myKeyCount == o.ItemsToGive.Count
+                && theirKeyCount >= myKeyCount
+                && theirKeyCount < o.ItemsToReceive.Count;
         }
     }
 
@@ -50,17 +53,23 @@ namespace KeyBot.OfferCheckers
         public FreeKeyOfferChecker(HashSet<string> keysToAccept)
         {
             KeysToAccept = keysToAccept;
-            KeysToGive = new HashSet<string>(KeyClassIds);
+            KeysToGive = new HashSet<string>(KeyNames);
             KeysToGive.ExceptWith(KeysToAccept);
         }
 
-        public override bool CheckOffer(Offer o)
-        {
-            List<CEconAsset> toGive = o.ItemsToGive ?? new List<CEconAsset>();
-            List<CEconAsset> toReceive = o.ItemsToReceive ?? new List<CEconAsset>();
-            int myKeyCount = toGive.Count(a => a.AppId == KeyAppId && a.InstanceId == KeyInstanceId && KeysToGive.Contains(a.ClassId));
-            int theirKeyCount = toReceive.Count(a => a.AppId == KeyAppId && a.InstanceId == KeyInstanceId && KeysToAccept.Contains(a.ClassId));        
-            return theirKeyCount >= myKeyCount && myKeyCount == toGive.Count;
+        public override bool CheckOffer(OfferModel o)
+        {            
+            int myKeyCount = o.ItemsToGive.Count(
+                a => a.AppId == KeyAppId 
+                    && a.InstanceId == KeyInstanceId 
+                    && KeysToGive.Contains(a.ClassId)
+                );
+            int theirKeyCount = o.ItemsToReceive.Count(
+                a => a.AppId == KeyAppId 
+                    && a.InstanceId == KeyInstanceId 
+                    && KeysToAccept.Contains(a.ClassId)
+                );        
+            return theirKeyCount >= myKeyCount && myKeyCount == o.ItemsToGive.Count;
         }       
     }
 }
