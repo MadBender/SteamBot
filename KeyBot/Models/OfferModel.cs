@@ -4,7 +4,7 @@ using SteamTrade.TradeOffer;
 
 namespace KeyBot.Models
 {
-    internal class OfferModel
+    public class OfferModel
     {
         public string TradeOfferId { get; set; }
         public List<CEconAssetModel> ItemsToGive { get; set; }

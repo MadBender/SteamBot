@@ -7,7 +7,7 @@ using SteamTrade.TradeOffer;
 
 namespace KeyBot.Models
 {
-    internal class CEconAssetModel: CEconAsset
+    public class CEconAssetModel: CEconAsset
     {
         public AssetDescription Description { get; set; }
 

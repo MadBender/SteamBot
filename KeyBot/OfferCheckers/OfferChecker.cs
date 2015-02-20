@@ -4,12 +4,12 @@ using KeyBot.Models;
 
 namespace KeyBot.OfferCheckers
 {
-    internal abstract class OfferChecker
+    public abstract class OfferChecker
     {
         public abstract bool CheckOffer(OfferModel o);
     }
 
-    internal abstract class KeyOfferChecker: OfferChecker
+    public abstract class KeyOfferChecker: OfferChecker
     {
         protected static HashSet<string> KeyNames = new HashSet<string>{
             "Operation Phoenix Case Key",
@@ -34,7 +34,7 @@ namespace KeyBot.OfferCheckers
         }
     }
 
-    internal class FeeKeyOfferChecker : KeyOfferChecker
+    public class FeeKeyOfferChecker : KeyOfferChecker
     {
         public override bool CheckOffer(OfferModel o)
         {        
@@ -46,7 +46,7 @@ namespace KeyBot.OfferCheckers
         }
     }
 
-    internal class FreeKeyOfferChecker : KeyOfferChecker
+    public class FreeKeyOfferChecker : KeyOfferChecker
     {
         private HashSet<string> KeysToAccept;
         private HashSet<string> KeysToGive;
