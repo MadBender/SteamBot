@@ -5,10 +5,11 @@ using SteamTrade.TradeOffer;
 
 namespace KeyBot.Tests
 {
+    [TestClass]
     public static class Init
     {
         [AssemblyInitialize]
-        public static void InitTests()
+        public static void InitTests(TestContext c)
         {
             Mapper.CreateMap<CEconAsset, CEconAssetModel>();
         }

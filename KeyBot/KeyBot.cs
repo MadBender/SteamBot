@@ -351,7 +351,7 @@ namespace KeyBot
             foreach (var g in groups) { 
                 var key = g.Key;
                 AssetDescription desc = g.First().Description;
-                sb.AppendFormat("{0,4} {1}\n", g.Count(), desc != null ? desc.MarketName : "Unknown");
+                sb.AppendFormat("{0,4} {1}\n", g.Count(), desc != null ? desc.MarketHashName : "Unknown");
             }
             return sb.ToString();
         }

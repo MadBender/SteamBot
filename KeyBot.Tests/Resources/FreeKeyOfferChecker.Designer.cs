@@ -22,14 +22,14 @@ namespace KeyBot.Tests.Resources {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class FeeKeyOfferChecker {
+    internal class FreeKeyOfferChecker {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal FeeKeyOfferChecker() {
+        internal FreeKeyOfferChecker() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace KeyBot.Tests.Resources {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("KeyBot.Tests.Resources.FeeKeyOfferChecker", typeof(FeeKeyOfferChecker).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("KeyBot.Tests.Resources.FreeKeyOfferChecker", typeof(FreeKeyOfferChecker).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,15 +61,6 @@ namespace KeyBot.Tests.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
-        /// </summary>
-        internal static string CorrectOffer {
-            get {
-                return ResourceManager.GetString("CorrectOffer", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {
         ///	&quot;response&quot;: {
         ///		&quot;offer&quot;: {
@@ -82,8 +73,8 @@ namespace KeyBot.Tests.Resources {
         ///				{
         ///					&quot;appid&quot;: &quot;730&quot;,
         ///					&quot;contextid&quot;: &quot;2&quot;,
-        ///					&quot;assetid&quot;: &quot;1576635703&quot;,
-        ///					&quot;classid&quot;: &quot;613589848&quot;,
+        ///					&quot;assetid&quot;: &quot;1643749961&quot;,
+        ///					&quot;classid&quot;: &quot;186150629&quot;,
         ///					&quot;instanceid&quot;: &quot;143865972&quot;,
         ///					&quot;amount&quot;: &quot;1&quot;,
         ///					&quot;missing&quot;: false
@@ -93,11 +84,11 @@ namespace KeyBot.Tests.Resources {
         ///				{
         ///					&quot;appid&quot;: &quot;730&quot;,
         ///					&quot;contextid&quot;: &quot;2&quot;,
-        ///					&quot;assetid&quot;: &quot;164374 [rest of string was truncated]&quot;;.
+        ///					&quot;assetid&quot;: &quot;157663 [rest of string was truncated]&quot;;.
         /// </summary>
-        internal static string NoAdds {
+        internal static string CorrectOffer {
             get {
-                return ResourceManager.GetString("NoAdds", resourceCulture);
+                return ResourceManager.GetString("CorrectOffer", resourceCulture);
             }
         }
     }

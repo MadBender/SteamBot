@@ -30,7 +30,7 @@ namespace KeyBot.OfferCheckers
             return asset.InstanceId == KeyInstanceId
                 && asset.AppId == KeyAppId
                 && asset.Description != null
-                && KeyNames.Contains(asset.Description.MarketName);
+                && KeyNames.Contains(asset.Description.MarketHashName);
         }
     }
 
@@ -59,16 +59,8 @@ namespace KeyBot.OfferCheckers
 
         public override bool CheckOffer(OfferModel o)
         {            
-            int myKeyCount = o.ItemsToGive.Count(
-                a => a.AppId == KeyAppId 
-                    && a.InstanceId == KeyInstanceId 
-                    && KeysToGive.Contains(a.ClassId)
-                );
-            int theirKeyCount = o.ItemsToReceive.Count(
-                a => a.AppId == KeyAppId 
-                    && a.InstanceId == KeyInstanceId 
-                    && KeysToAccept.Contains(a.ClassId)
-                );        
+            int myKeyCount = o.ItemsToGive.Count(a => IsKey(a) && KeysToGive.Contains(a.Description.MarketHashName));
+            int theirKeyCount = o.ItemsToReceive.Count(a => IsKey(a) && KeysToAccept.Contains(a.Description.MarketHashName));        
             return theirKeyCount >= myKeyCount && myKeyCount == o.ItemsToGive.Count;
         }       
     }
