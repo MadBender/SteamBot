@@ -69,16 +69,6 @@
     <Compile Include="FeeKeyOfferCheckerTest.cs" />
     <Compile Include="Init.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Resources\FeeKeyOfferChecker.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>FeeKeyOfferChecker.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Resources\FreeKeyOfferChecker.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>FreeKeyOfferChecker.resx</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -92,16 +82,6 @@
       <Project>{6cec0333-81eb-40ee-85d1-941363626fc7}</Project>
       <Name>SteamTrade</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\FeeKeyOfferChecker.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>FeeKeyOfferChecker.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Resources\FreeKeyOfferChecker.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>FreeKeyOfferChecker.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

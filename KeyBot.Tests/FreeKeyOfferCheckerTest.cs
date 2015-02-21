@@ -9,8 +9,6 @@ namespace KeyBot.Tests
     [TestClass]
     public class FreeKeyOfferCheckerTest: KeyOfferCheckerTest
     {
-        public FreeKeyOfferChecker Checker;
-
         public FreeKeyOfferCheckerTest()
         {
             Checker = new FreeKeyOfferChecker(
@@ -24,8 +22,52 @@ namespace KeyBot.Tests
         [TestMethod]
         public void CorrectOffer()
         {
-            OfferModel o = GetOffer(Resources.FreeKeyOfferChecker.CorrectOffer);
-            Assert.IsTrue(Checker.CheckOffer(o));
+            Assert.IsTrue(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { CsGoKey },
+                    ItemsToReceive = new List<CEconAssetModel> { BreakoutKey }
+                }));   
         }
+
+        [TestMethod]
+        public void WrongKeys()
+        {
+            Assert.IsFalse(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
+                    ItemsToReceive = new List<CEconAssetModel> { CsGoKey }
+                }));   
+        }
+
+        [TestMethod]
+        public void WantsMoreKeys()
+        {
+            Assert.IsFalse(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { BreakoutKey, BreakoutKey },
+                    ItemsToReceive = new List<CEconAssetModel> { CsGoKey }
+                }));
+        }
+
+        [TestMethod]
+        public void OffersAdds()
+        {
+            Assert.IsTrue(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { CsGoKey },
+                    ItemsToReceive = new List<CEconAssetModel> { BreakoutKey, CsGoKey, OtherItem }
+                }));
+        }
+
+        [TestMethod]
+        public void WantsMyItems()
+        {
+            Assert.IsFalse(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { CsGoKey, OtherItem },
+                    ItemsToReceive = new List<CEconAssetModel> { BreakoutKey }
+                }));
+        }
+
     }
 }

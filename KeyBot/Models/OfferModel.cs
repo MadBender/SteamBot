@@ -10,6 +10,9 @@ namespace KeyBot.Models
         public List<CEconAssetModel> ItemsToGive { get; set; }
         public List<CEconAssetModel> ItemsToReceive { get; set; }
 
+        public OfferModel()
+        { }
+
         public OfferModel(Offer o, List<AssetDescription> descriptions)
         {
             TradeOfferId = o.TradeOfferId;

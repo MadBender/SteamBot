@@ -42,7 +42,8 @@ namespace KeyBot.OfferCheckers
             int theirKeyCount = o.ItemsToReceive.Count(IsKey);            
             return myKeyCount == o.ItemsToGive.Count
                 && theirKeyCount >= myKeyCount
-                && theirKeyCount < o.ItemsToReceive.Count;
+                //has adds or additional keys
+                && o.ItemsToGive.Count < o.ItemsToReceive.Count;
         }
     }
 
