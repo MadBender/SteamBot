@@ -14,5 +14,8 @@
     <Setting Name="UpdateInterval" Type="System.TimeSpan" Scope="Application">
       <Value Profile="(Default)">00:00:10</Value>
     </Setting>
+    <Setting Name="FreeKeys" Type="System.String[]" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

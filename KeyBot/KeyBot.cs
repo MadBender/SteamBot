@@ -7,6 +7,7 @@ using System.Threading;
 using AutoMapper;
 using KeyBot.Models;
 using KeyBot.OfferCheckers;
+using KeyBot.Properties;
 using SteamKit2;
 using SteamTrade;
 using SteamTrade.TradeOffer;
@@ -261,16 +262,12 @@ namespace KeyBot
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
 
-            List<OfferChecker> checkers = new List<OfferChecker>{
-                new FeeKeyOfferChecker(),
-                new FreeKeyOfferChecker(
-                    new HashSet<string>{
-                        "Operation Phoenix Case Key", 
-                        "Operation Breakout Case Key", 
-                        "Huntsman Case Key"
-                    })
-            };
-           
+            List<OfferChecker> checkers = new List<OfferChecker>{ new FeeKeyOfferChecker() };
+
+            if (Settings.Default.FreeKeys != null && Settings.Default.FreeKeys.Length != 0){
+                checkers.Add(new FreeKeyOfferChecker(new HashSet<string>(Settings.Default.FreeKeys)));
+            }
+                       
             while (!StopEvent.IsSet) {
                 try {                    
                     //Log("Checking trades");

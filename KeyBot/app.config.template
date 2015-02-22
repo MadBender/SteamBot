@@ -22,6 +22,16 @@
       <setting name="UpdateInterval" serializeAs="String">
         <value>00:00:10</value>
       </setting>
+      <setting name="FreeKeys" serializeAs="Xml">
+        <value>
+          <ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <string>Operation Phoenix Case Key</string>
+            <string>Operation Breakout Case Key</string>
+            <string>Huntsman Case Key</string>
+          </ArrayOfString>
+        </value>
+      </setting>
     </KeyBot.Properties.Settings>
   </applicationSettings>
 </configuration>
