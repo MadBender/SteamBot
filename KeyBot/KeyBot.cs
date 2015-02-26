@@ -7,6 +7,7 @@ using System.Threading;
 using AutoMapper;
 using KeyBot.Models;
 using KeyBot.OfferCheckers;
+using KeyBot.Price;
 using KeyBot.Properties;
 using SteamKit2;
 using SteamTrade;
@@ -291,11 +292,14 @@ namespace KeyBot
             if (offers.TradeOffersReceived != null) {
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
-                    CheckOffer(new OfferModel(o, offers.Descriptions), checkers);
+                    var offerModel = new OfferModel(o, offers.Descriptions);
+                    CheckOffer(offerModel, checkers);
                 }
             }
         }
         
+
+
 
         private void CheckOffer(OfferModel o, IEnumerable<OfferChecker> checkers)
         {            
@@ -330,6 +334,15 @@ namespace KeyBot
                 }
             }
             ProcessedOffers.Add(o.TradeOfferId);
+        }
+
+        private void GetPrices(OfferModel offer)
+        { 
+            PriceChecker checker = new PriceChecker(SteamWeb);
+            //todo optimize?
+            foreach (CEconAssetModel a in offer.ItemsToGive.Concat(offer.ItemsToReceive)) {
+                a.Price = checker.GetPrice(a.Description, 1);
+            }
         }
 
         private void Log(string message)

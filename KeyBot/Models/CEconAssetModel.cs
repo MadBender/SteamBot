@@ -10,6 +10,6 @@ namespace KeyBot.Models
     public class CEconAssetModel: CEconAsset
     {
         public AssetDescription Description { get; set; }
-
+        public decimal? Price { get; set; }
     }
 }

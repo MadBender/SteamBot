@@ -63,5 +63,16 @@ namespace KeyBot.Tests
                     ItemsToReceive = new List<CEconAssetModel> { CsGoKey, OtherItem }
                 }));  
         }
+
+        [TestMethod]
+        public void ForgotMyItems()
+        {
+            Assert.IsTrue(Checker.CheckOffer(
+                new OfferModel {
+                    ItemsToGive = new List<CEconAssetModel> { },
+                    ItemsToReceive = new List<CEconAssetModel> { CsGoKey, OtherItem }
+                }));
+        }
+
     }
 }
