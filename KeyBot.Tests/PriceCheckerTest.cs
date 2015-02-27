@@ -17,13 +17,15 @@ namespace KeyBot.Tests
         [TestMethod]
         public void TestPrice()
         {
-            decimal? price = new PriceChecker(SteamWeb)
-                .GetPrice(new AssetDescription {
-                    MarketHashName = "CS:GO Case Key",
-                    AppId = 730
-                }, 1);
+            for (int i = 1; i <= 5; i++) {
+                decimal? price = new PriceChecker(SteamWeb)
+                    .GetPrice(new AssetDescription {
+                        MarketHashName = "CS:GO Case Key",
+                        AppId = 730
+                    }, i);
 
-            Assert.IsNotNull(price);
+                Assert.IsNotNull(price);
+            }
         }
     }
 }

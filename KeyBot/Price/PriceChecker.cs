@@ -42,15 +42,17 @@ namespace KeyBot.Price
                 { "appid", desc.AppId.ToString() }, 
                 { "market_hash_name", desc.MarketHashName } 
             };
-            GetPriceResponse response = JsonConvert.DeserializeObject<GetPriceResponse>(SteamWeb.Fetch("http://" + SteamWeb.SteamCommunityDomain + "/market/priceoverview", "GET", keys));
-
-            if (response.Success) {
-                string priceString = HttpUtility.HtmlDecode(response.MedianPrice).Replace(",", ".");
-                Match m = Regex.Match(priceString, @"\d+(\.\d+)?");
-                if (m.Success) {
-                    return decimal.Parse(m.Captures[0].Value, CultureInfo.InvariantCulture);
+            try {
+                GetPriceResponse response = JsonConvert.DeserializeObject<GetPriceResponse>(SteamWeb.Fetch("http://" + SteamWeb.SteamCommunityDomain + "/market/priceoverview", "GET", keys));
+                if (response.Success) {
+                    string priceString = HttpUtility.HtmlDecode(response.MedianPrice).Replace(",", ".");
+                    Match m = Regex.Match(priceString, @"\d+(\.\d+)?");
+                    if (m.Success) {
+                        return decimal.Parse(m.Captures[0].Value, CultureInfo.InvariantCulture);
+                    }
                 }
-            }
+            } catch {                
+            }           
             return null;
         }
     }

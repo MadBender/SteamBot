@@ -36,6 +36,7 @@ namespace KeyBot
         private TradeOfferManager OfferManager;
         private TradeOfferWebAPI TradeWebApi;
         private HashSet<string> ProcessedOffers;
+        private PriceCache PriceCache;
 
         //bot job
         private ManualResetEventSlim StopEvent;
@@ -262,6 +263,7 @@ namespace KeyBot
         {            
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
+            PriceCache = new PriceCache(new PriceChecker(SteamWeb), TimeSpan.FromMinutes(5));
 
             List<OfferChecker> checkers = new List<OfferChecker>{ new FeeKeyOfferChecker() };
 
@@ -293,13 +295,11 @@ namespace KeyBot
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
                     var offerModel = new OfferModel(o, offers.Descriptions);
+                    //GetPrices(offerModel);
                     CheckOffer(offerModel, checkers);
                 }
             }
         }
-        
-
-
 
         private void CheckOffer(OfferModel o, IEnumerable<OfferChecker> checkers)
         {            
@@ -337,11 +337,10 @@ namespace KeyBot
         }
 
         private void GetPrices(OfferModel offer)
-        { 
-            PriceChecker checker = new PriceChecker(SteamWeb);
+        {             
             //todo optimize?
             foreach (CEconAssetModel a in offer.ItemsToGive.Concat(offer.ItemsToReceive)) {
-                a.Price = checker.GetPrice(a.Description, 1);
+                a.Price = PriceCache.GetPrice(a.Description, 1);
             }
         }
 
@@ -358,11 +357,23 @@ namespace KeyBot
 
             StringBuilder sb = new StringBuilder();
 
+            decimal total = 0;
             foreach (var g in groups) { 
                 var key = g.Key;
-                AssetDescription desc = g.First().Description;
-                sb.AppendFormat("{0,4} {1}\n", g.Count(), desc != null ? desc.MarketHashName : "Unknown");
+                CEconAssetModel first = g.First();
+                if (first.Price != null) {
+                    total += first.Price.Value;
+                }
+                sb.AppendFormat(
+                    "{0, 4} {1, -55} {2, 8:0.00} {3, 8:0.00}\n", 
+                    g.Count(), 
+                    first.Description != null ? first.Description.MarketHashName : "Unknown",
+                    first.Price != null ? first.Price : null,
+                    first.Price != null ? first.Price * g.Count() : null
+                );
             }
+            sb.AppendFormat("     Total: {0, 66:0.00}\n", total);
+
             return sb.ToString();
         }
     }
