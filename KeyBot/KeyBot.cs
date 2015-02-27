@@ -295,7 +295,7 @@ namespace KeyBot
                 List<Offer> newOffers = offers.TradeOffersReceived.FindAll(o => o.TradeOfferState == TradeOfferState.TradeOfferStateActive && !ProcessedOffers.Contains(o.TradeOfferId));
                 foreach (Offer o in newOffers) {
                     var offerModel = new OfferModel(o, offers.Descriptions);
-                    //GetPrices(offerModel);
+                    GetPrices(offerModel);
                     CheckOffer(offerModel, checkers);
                 }
             }
