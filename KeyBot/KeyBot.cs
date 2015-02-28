@@ -334,10 +334,17 @@ namespace KeyBot
         }
 
         private void GetPrices(OfferModel offer)
-        {             
-            //todo optimize?
-            foreach (CEconAssetModel a in offer.ItemsToGive.Concat(offer.ItemsToReceive)) {
-                a.Price = PriceCache.GetPrice(a.Description, 1);
+        {
+            //getting price once for every group
+            var groups = offer.ItemsToGive.Concat(offer.ItemsToReceive)
+                .Where(a => a.Description != null)
+                .GroupBy(a => new { a.Description.AppId, a.Description.MarketHashName });
+
+            foreach (var g in groups) {
+                decimal? price = PriceCache.GetPrice(g.First().Description, 1);
+                foreach (CEconAssetModel a in g) {
+                    a.Price = price;
+                }
             }
         }
 
