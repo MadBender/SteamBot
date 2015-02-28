@@ -67,9 +67,9 @@
     <Compile Include="ExceptionHelper.cs" />
     <Compile Include="KeyBot.cs" />
     <Compile Include="Models\OfferModel.cs" />
-    <Compile Include="OfferCheckers\OfferChecker.cs" />
-    <Compile Include="OfferCheckers\KeySwapOfferChecker.cs" />
-    <Compile Include="OfferCheckers\SwapOfferChecker.cs" />
+    <Compile Include="OfferValidators\OfferValidator.cs" />
+    <Compile Include="OfferValidators\KeySwapOfferValidator.cs" />
+    <Compile Include="OfferValidators\SwapOfferValidator.cs" />
     <Compile Include="Price\PriceCache.cs" />
     <Compile Include="Price\PriceChecker.cs" />
     <Compile Include="Properties\Settings.Designer.cs">

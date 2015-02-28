@@ -1,15 +1,15 @@
 ﻿using System.Collections.Generic;
 using KeyBot.Models;
-using KeyBot.OfferCheckers;
+using KeyBot.OfferValidators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SteamTrade.TradeOffer;
 
 namespace KeyBot.Tests
 {
     [TestClass]
-    public class KeySwapOfferCheckerTest
+    public class KeySwapOfferValidatorTest
     {
-        private OfferChecker Checker;
+        private OfferValidator Checker;
 
         //sample objects
 
@@ -33,9 +33,9 @@ namespace KeyBot.Tests
             Price = 2.49m
         };  
 
-        public KeySwapOfferCheckerTest()
+        public KeySwapOfferValidatorTest()
         {
-            Checker = new KeySwapOfferChecker(
+            Checker = new KeySwapOfferValidator(
                 new HashSet<string>{
                     "CS:GO Case Key",
                     "Winter Offensive Case Key",
@@ -53,7 +53,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void CorrectOffer()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel>{ BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel>{ CsGoKey, Item(0.05m) }
             }));
@@ -62,7 +62,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void LowAdds()
         {
-            Assert.IsFalse(Checker.CheckOffer(new OfferModel {
+            Assert.IsFalse(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { CsGoKey, Item(0.04m) }
             }));
@@ -71,7 +71,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void MultipleAdds()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { CsGoKey, Item(0.04m), Item(0.04m) }
             }));
@@ -80,7 +80,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void NoAdds()
         {
-            Assert.IsFalse(Checker.CheckOffer(new OfferModel {
+            Assert.IsFalse(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { CsGoKey }
             }));
@@ -89,7 +89,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void FreeSwap()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { CsGoKey },
                 ItemsToReceive = new List<CEconAssetModel> { BreakoutKey }
             }));
@@ -98,7 +98,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void WantsMyItems()
         {
-            Assert.IsFalse(Checker.CheckOffer(new OfferModel {
+            Assert.IsFalse(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { CsGoKey, Item(0.05m) },
                 ItemsToReceive = new List<CEconAssetModel> { BreakoutKey }
             }));
@@ -107,7 +107,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void DonatesItems()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> {  },
                 ItemsToReceive = new List<CEconAssetModel> { Item(0.05m) }
             }));
@@ -116,7 +116,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void MixedSwap()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { CsGoKey, BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { BreakoutKey, BreakoutKey, Item(0.05m) }
             }));
@@ -125,7 +125,7 @@ namespace KeyBot.Tests
         [TestMethod]
         public void NullPrice()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { CsGoKey, Item(null), Item(0.05m) }
             }));
@@ -134,9 +134,18 @@ namespace KeyBot.Tests
         [TestMethod]
         public void ExtraKeys()
         {
-            Assert.IsTrue(Checker.CheckOffer(new OfferModel {
+            Assert.IsTrue(Checker.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
                 ItemsToReceive = new List<CEconAssetModel> { CsGoKey, CsGoKey }
+            }));
+        }
+
+        [TestMethod]
+        public void LittleKeys()
+        {
+            Assert.IsFalse(Checker.IsValid(new OfferModel {
+                ItemsToGive = new List<CEconAssetModel> { CsGoKey, CsGoKey },
+                ItemsToReceive = new List<CEconAssetModel> { BreakoutKey }
             }));
         }
 

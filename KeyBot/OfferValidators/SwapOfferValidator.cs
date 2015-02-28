@@ -5,14 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 using KeyBot.Models;
 
-namespace KeyBot.OfferCheckers
+namespace KeyBot.OfferValidators
 {
-    public abstract class SwapOfferChecker: OfferChecker
-    {    
-        //parameters: my item, their item, swap price (null if can't swap)
+    public abstract class SwapOfferValidator: OfferValidator
+    {   
+        /// <summary>
+        /// gets swap price for the pair of items
+        /// </summary>
+        /// <param name="mine">my item</param>
+        /// <param name="theirs">their item</param>
+        /// <returns>swap price or null if can't swap</returns>
         protected abstract decimal? GetSwapPrice(CEconAssetModel mine, CEconAssetModel theirs);
         
-        public override bool CheckOffer(OfferModel o)
+        public override bool IsValid(OfferModel o)
         {
             var theirItems = new List<CEconAssetModel>(o.ItemsToReceive);
             decimal totalSwapPrice = 0;

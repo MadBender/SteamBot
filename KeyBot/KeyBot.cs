@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using KeyBot.Models;
-using KeyBot.OfferCheckers;
+using KeyBot.OfferValidators;
 using KeyBot.Price;
 using KeyBot.Properties;
 using SteamKit2;
@@ -264,14 +264,14 @@ namespace KeyBot
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
             PriceCache = new PriceCache(new PriceChecker(SteamWeb), TimeSpan.FromMinutes(5));
 
-            List<OfferChecker> checkers = new List<OfferChecker>{ 
-                new KeySwapOfferChecker(new HashSet<string>(Settings.Default.FreeKeys), Settings.Default.SwapPrice)
+            List<OfferValidator> validators = new List<OfferValidator>{ 
+                new KeySwapOfferValidator(new HashSet<string>(Settings.Default.FreeKeys), Settings.Default.SwapPrice)
             };                      
                        
             while (!StopEvent.IsSet) {
                 try {                    
                     //Log("Checking trades");
-                    CheckTrades(checkers);
+                    CheckTrades(validators);
                 }
                 catch (TradeAcceptException) { 
                     //terminate the loop                    
@@ -284,7 +284,7 @@ namespace KeyBot
             }
         }
 
-        private void CheckTrades(IEnumerable<OfferChecker> checkers)
+        private void CheckTrades(IEnumerable<OfferValidator> validators)
         {            
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, true);
@@ -293,14 +293,14 @@ namespace KeyBot
                 foreach (Offer o in newOffers) {
                     var offerModel = new OfferModel(o, offers.Descriptions);
                     GetPrices(offerModel);
-                    CheckOffer(offerModel, checkers);
+                    CheckOffer(offerModel, validators);
                 }
             }
         }
 
-        private void CheckOffer(OfferModel o, IEnumerable<OfferChecker> checkers)
+        private void CheckOffer(OfferModel o, IEnumerable<OfferValidator> validators)
         {            
-            bool accept = checkers.Any(c => c.CheckOffer(o));
+            bool accept = validators.Any(c => c.IsValid(o));
             Log(
                 string.Format(
                     "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",

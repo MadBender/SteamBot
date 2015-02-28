@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using KeyBot.Models;
 
-namespace KeyBot.OfferCheckers
+namespace KeyBot.OfferValidators
 {
-    public class KeySwapOfferChecker: SwapOfferChecker
+    public class KeySwapOfferValidator: SwapOfferValidator
     {
         private static HashSet<string> KeyNames = new HashSet<string>{
             "Operation Phoenix Case Key",
@@ -19,7 +19,7 @@ namespace KeyBot.OfferCheckers
         private HashSet<string> FreeKeys;
         private decimal SwapPrice;
 
-        public KeySwapOfferChecker(HashSet<string> freeKeys, decimal swapPrice)
+        public KeySwapOfferValidator(HashSet<string> freeKeys, decimal swapPrice)
         {
             FreeKeys = freeKeys;
             SwapPrice = swapPrice;
