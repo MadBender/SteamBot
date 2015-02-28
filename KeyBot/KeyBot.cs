@@ -366,7 +366,7 @@ namespace KeyBot
                 var key = g.Key;
                 CEconAssetModel first = g.First();
                 if (first.Price != null) {
-                    total += first.Price.Value;
+                    total += first.Price.Value * g.Count();
                 }
                 sb.AppendFormat(
                     "{0, 4} {1, -55} {2, 8:0.00} {3, 8:0.00}\n", 
