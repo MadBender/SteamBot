@@ -32,6 +32,9 @@
           </ArrayOfString>
         </value>
       </setting>
+      <setting name="SwapPrice" serializeAs="String">
+        <value>0.05</value>
+      </setting>
     </KeyBot.Properties.Settings>
   </applicationSettings>
 </configuration>

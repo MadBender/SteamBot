@@ -66,5 +66,14 @@ namespace KeyBot.Properties {
                 return ((string[])(this["FreeKeys"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.05")]
+        public decimal SwapPrice {
+            get {
+                return ((decimal)(this["SwapPrice"]));
+            }
+        }
     }
 }

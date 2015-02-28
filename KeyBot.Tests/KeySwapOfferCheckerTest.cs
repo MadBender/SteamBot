@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using KeyBot.Models;
 using KeyBot.OfferCheckers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -8,7 +7,7 @@ using SteamTrade.TradeOffer;
 namespace KeyBot.Tests
 {
     [TestClass]
-    public class SwapOfferCheckerTest
+    public class KeySwapOfferCheckerTest
     {
         private OfferChecker Checker;
 
@@ -32,45 +31,19 @@ namespace KeyBot.Tests
                 MarketHashName = "Operation Breakout Case Key"
             },
             Price = 2.49m
-        };        
+        };  
 
-        private static HashSet<string> KeyNames = new HashSet<string>{
-            "Operation Phoenix Case Key",
-            "CS:GO Case Key",
-            "Operation Breakout Case Key",
-            "Huntsman Case Key",
-            "eSports Key",
-            "Winter Offensive Case Key",
-            "Operation Vanguard Case Key",
-            "Chroma Case Key"
-        };
-
-        public SwapOfferCheckerTest()
+        public KeySwapOfferCheckerTest()
         {
-            var freeKeys = new HashSet<string>{
-                "CS:GO Case Key",
-                "Winter Offensive Case Key",
-                "Chroma Case Key"
-            };
-
-            Checker = new SwapOfferChecker(
-                (my, their) => {
-                    if (IsKey(my) && IsKey(their)) {
-                        return freeKeys.Contains(my.Description.MarketHashName) && !freeKeys.Contains(their.Description.MarketHashName)
-                            ? 0m
-                            : 0.05m;
-                    }
-                    return null;
-                });            
-        }
-
-        private bool IsKey(CEconAssetModel asset)
-        {
-            return asset.InstanceId == "143865972"
-                && asset.AppId == "730"
-                && asset.Description != null
-                && KeyNames.Contains(asset.Description.MarketHashName);
-        }
+            Checker = new KeySwapOfferChecker(
+                new HashSet<string>{
+                    "CS:GO Case Key",
+                    "Winter Offensive Case Key",
+                    "Chroma Case Key"
+                }, 
+                0.05m
+            );            
+        }      
 
         private CEconAssetModel Item(decimal? price)
         {

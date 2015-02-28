@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using AutoMapper;
 using KeyBot.Models;
 using KeyBot.OfferCheckers;
 using KeyBot.Price;
@@ -265,11 +264,9 @@ namespace KeyBot
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
             PriceCache = new PriceCache(new PriceChecker(SteamWeb), TimeSpan.FromMinutes(5));
 
-            List<OfferChecker> checkers = new List<OfferChecker>{ new FeeKeyOfferChecker() };
-
-            if (Settings.Default.FreeKeys != null && Settings.Default.FreeKeys.Length != 0){
-                checkers.Add(new FreeKeyOfferChecker(new HashSet<string>(Settings.Default.FreeKeys)));
-            }
+            List<OfferChecker> checkers = new List<OfferChecker>{ 
+                new KeySwapOfferChecker(new HashSet<string>(Settings.Default.FreeKeys), Settings.Default.SwapPrice)
+            };                      
                        
             while (!StopEvent.IsSet) {
                 try {                    

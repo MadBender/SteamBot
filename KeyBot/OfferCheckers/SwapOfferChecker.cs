@@ -7,16 +7,11 @@ using KeyBot.Models;
 
 namespace KeyBot.OfferCheckers
 {
-    public class SwapOfferChecker: OfferChecker
-    {        
+    public abstract class SwapOfferChecker: OfferChecker
+    {    
         //parameters: my item, their item, swap price (null if can't swap)
-        private Func<CEconAssetModel, CEconAssetModel, decimal?> SwapFunc;
-
-        public SwapOfferChecker(Func<CEconAssetModel, CEconAssetModel, decimal?> swapFunc)
-        {
-            SwapFunc = swapFunc;
-        }
-
+        protected abstract decimal? GetSwapPrice(CEconAssetModel mine, CEconAssetModel theirs);
+        
         public override bool CheckOffer(OfferModel o)
         {
             var theirItems = new List<CEconAssetModel>(o.ItemsToReceive);
@@ -28,7 +23,7 @@ namespace KeyBot.OfferCheckers
                 decimal itemSwapPrice = decimal.MaxValue;
                 //looking for pair
                 foreach(CEconAssetModel theirItem in theirItems) {
-                    decimal? sPrice = SwapFunc(myItem, theirItem);
+                    decimal? sPrice = GetSwapPrice(myItem, theirItem);
                     if (sPrice != null && sPrice.Value < itemSwapPrice) {
                         swapItem = theirItem;
                         itemSwapPrice = sPrice.Value;

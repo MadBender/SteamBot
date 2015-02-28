@@ -62,7 +62,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="SwapOfferCheckerTest.cs" />
+    <Compile Include="KeySwapOfferCheckerTest.cs" />
     <Compile Include="PriceCheckerTest.cs" />
     <Compile Include="Init.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
