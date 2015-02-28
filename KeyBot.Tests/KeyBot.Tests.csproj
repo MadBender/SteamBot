@@ -62,12 +62,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="SwapOfferCheckerTest.cs" />
     <Compile Include="PriceCheckerTest.cs" />
-    <Compile Include="FreeKeyOfferCheckerTest.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="KeyOfferCheckerTest.cs" />
-    <Compile Include="FeeKeyOfferCheckerTest.cs" />
     <Compile Include="Init.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
