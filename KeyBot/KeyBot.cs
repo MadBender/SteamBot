@@ -8,6 +8,7 @@ using KeyBot.Models;
 using KeyBot.OfferValidators;
 using KeyBot.Price;
 using KeyBot.Properties;
+using Newtonsoft.Json;
 using SteamKit2;
 using SteamTrade;
 using SteamTrade.TradeOffer;
@@ -37,6 +38,8 @@ namespace KeyBot
         private HashSet<string> ProcessedOffers;
         private PriceCache PriceCache;
 
+        private List<OfferValidator> OfferValidators;
+
         //bot job
         private ManualResetEventSlim StopEvent;
         private Thread TradeCheckingThread;
@@ -44,7 +47,7 @@ namespace KeyBot
 
         public EResult LogoffReason { get; private set; }
 
-        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval)
+        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval, List<OfferValidator> validators)
         {
             Login = login;
             Password = password;
@@ -53,6 +56,7 @@ namespace KeyBot
             SteamWeb = new SteamWeb();
             TradeWebApi = new TradeOfferWebAPI(ApiKey, SteamWeb);
             BotStoppedEvent = new ManualResetEventSlim();
+            OfferValidators = validators;
         }        
 
         public void Start()
@@ -253,6 +257,7 @@ namespace KeyBot
                 TradeCheckingThread.Start();                
             } else {
                 Log("Web authentication failed");
+                Stop();
             }
         }
 
@@ -263,15 +268,11 @@ namespace KeyBot
             ProcessedOffers = new HashSet<string>();
             OfferManager = new TradeOfferManager(ApiKey, SteamWeb);
             PriceCache = new PriceCache(new PriceChecker(SteamWeb), TimeSpan.FromMinutes(5));
-
-            List<OfferValidator> validators = new List<OfferValidator>{ 
-                new KeySwapOfferValidator(new HashSet<string>(Settings.Default.FreeKeys), Settings.Default.SwapPrice)
-            };                      
-                       
+                                   
             while (!StopEvent.IsSet) {
                 try {                    
                     //Log("Checking trades");
-                    CheckTrades(validators);
+                    CheckTrades();
                 }
                 catch (TradeAcceptException) { 
                     //terminate the loop                    
@@ -284,7 +285,7 @@ namespace KeyBot
             }
         }
 
-        private void CheckTrades(IEnumerable<OfferValidator> validators)
+        private void CheckTrades()
         {            
             //http://api.steampowered.com/IEconService/GetTradeOffers/v1?key=XXXXXXXXXXXXXXXXXXXXXXXXXX&get_received_offers=1&active_only=1            
             OffersResponse offers = TradeWebApi.GetActiveTradeOffers(false, true, true);
@@ -293,14 +294,14 @@ namespace KeyBot
                 foreach (Offer o in newOffers) {
                     var offerModel = new OfferModel(o, offers.Descriptions);
                     GetPrices(offerModel);
-                    CheckOffer(offerModel, validators);
+                    CheckOffer(offerModel);
                 }
             }
         }
 
-        private void CheckOffer(OfferModel o, IEnumerable<OfferValidator> validators)
+        private void CheckOffer(OfferModel o)
         {            
-            bool accept = validators.Any(c => c.IsValid(o));
+            bool accept = OfferValidators.Any(c => c.IsValid(o));
             Log(
                 string.Format(
                     "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",

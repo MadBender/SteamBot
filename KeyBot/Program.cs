@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Reflection;
@@ -6,7 +7,9 @@ using System.Text;
 using System.Threading;
 using AutoMapper;
 using KeyBot.Models;
+using KeyBot.OfferValidators;
 using KeyBot.Properties;
+using Newtonsoft.Json;
 using SteamKit2;
 using SteamTrade.TradeOffer;
 
@@ -33,7 +36,18 @@ namespace KeyBot
                 string twoFactorAuth = null;
                 while (true) {
                     Console.WriteLine("\nStarting the bot");
-                    Bot = new KeyBot(settings.Login, settings.Password, settings.ApiKey, settings.UpdateInterval) { 
+                    Bot = new KeyBot(
+                        settings.Login, 
+                        settings.Password, 
+                        settings.ApiKey, 
+                        settings.UpdateInterval, 
+                        new List<OfferValidator>{ 
+                            new RuleSwapOfferValidator(JsonConvert
+                                .DeserializeObject<CompactValidationRuleSet>(File.ReadAllText(Path.Combine(Program.CurrentDirectory, "SwapRules.json")))
+                                .GetFullRuleSet()
+                            )                
+                        }
+                    ) { 
                         AuthCode = authCode,
                         TwoFactorAuth = twoFactorAuth
                     };

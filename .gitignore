@@ -30,3 +30,4 @@ packages
 # Allow NuGet specific exes and dlls
 !.nuget/Microsoft.Build.dll
 KeyBot/app.config
+KeyBot/SwapRules.json

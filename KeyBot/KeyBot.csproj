@@ -68,8 +68,11 @@
     <Compile Include="KeyBot.cs" />
     <Compile Include="Models\OfferModel.cs" />
     <Compile Include="OfferValidators\OfferValidator.cs" />
-    <Compile Include="OfferValidators\KeySwapOfferValidator.cs" />
+    <Compile Include="OfferValidators\RuleSwapOfferValidator.cs" />
     <Compile Include="OfferValidators\SwapOfferValidator.cs" />
+    <Compile Include="OfferValidators\SwapValidationRule.cs" />
+    <Compile Include="OfferValidators\CompactValidationRuleSet.cs" />
+    <Compile Include="OfferValidators\SwapValidationRuleSet.cs" />
     <Compile Include="Price\PriceCache.cs" />
     <Compile Include="Price\PriceChecker.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -96,6 +99,12 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="SwapRules.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="SwapRules.json.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

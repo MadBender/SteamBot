@@ -22,7 +22,7 @@ namespace KeyBot.OfferValidators
             var theirItems = new List<CEconAssetModel>(o.ItemsToReceive);
             decimal totalSwapPrice = 0;
 
-            //searhing a cheapest swap pair for every item of mine
+            //searching a cheapest swap pair for every item of mine
             foreach (CEconAssetModel myItem in o.ItemsToGive) {
                 CEconAssetModel swapItem = null;
                 decimal itemSwapPrice = decimal.MaxValue;
