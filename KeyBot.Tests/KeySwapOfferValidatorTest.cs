@@ -48,7 +48,7 @@ namespace KeyBot.Tests
         {
             Assert.IsFalse(Validator.IsValid(new OfferModel {
                 ItemsToGive = new List<CEconAssetModel> { BreakoutKey },
-                ItemsToReceive = new List<CEconAssetModel> { CsGoKey, Item(0.04m) }
+                ItemsToReceive = new List<CEconAssetModel> { CsGoKey, Item(0.03m) }
             }));
         }
 

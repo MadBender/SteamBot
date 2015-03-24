@@ -1,21 +1,25 @@
 ﻿{
     Groups: {
-        Keys: [
-            "Operation Phoenix Case Key",
-            "CS:GO Case Key",
-            "Operation Breakout Case Key",
+        High: [
+            "Operation Phoenix Case Key"
+        ],
+		Mid: [
             "Huntsman Case Key",
+            "Operation Breakout Case Key",
+            "Chroma Case Key",
+            "Operation Vanguard Case Key"		
+		],
+		Low: [
+            "CS:GO Case Key",
             "eSports Key",
-            "Winter Offensive Case Key",
-            "Operation Vanguard Case Key",
-            "Chroma Case Key"
-        ]
+            "Winter Offensive Case Key"		
+		]
     },
     Rules: [
-        { MyItems: [ "CS:GO Case Key" ], TheirItems: [ "Keys" ], Price: 0 },
-        { MyItems: [ "Chroma Case Key" ], TheirItems: [ "CS:GO Case Key" ], Price: 0.05 },
-        { MyItems: [ "Chroma Case Key" ], TheirItems: [ "Keys" ], Price: 0 },
-        { MyItems: [ "Keys" ], TheirItems: [ "Operation Phoenix Case Key" ], Price: 0 },
-        { MyItems: [ "Keys" ], TheirItems: [ "Keys" ], Price: 0.05 }
+	    { MyItems: [ "Low" ], TheirItems: [ "Low" ], Price: 0.05 },
+        { MyItems: [ "Low" ], TheirItems: [ "Mid", "High" ], Price: 0 },
+        { MyItems: [ "Mid" ], TheirItems: [ "High" ], Price: 0 },
+        { MyItems: [ "Mid" ], TheirItems: [ "Mid", "Low" ], Price: 0.05 },
+        { MyItems: [ "High" ], TheirItems: [ "High", "Mid", "Low" ], Price: 0.05 }
     ]
 }
