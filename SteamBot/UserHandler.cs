@@ -100,7 +100,7 @@ namespace SteamBot
         /// </summary>
         public Log Log
         {
-            get { return Bot.log; }
+            get { return Bot.Log; }
         }
         
         /// <summary>
@@ -111,7 +111,7 @@ namespace SteamBot
         /// </value>
         public bool IsAdmin
         {
-            get { return Bot.Admins.Contains ((ulong)OtherSID); }
+            get { return Bot.Admins.Contains(OtherSID); }
         }
 
         /// <summary>
@@ -239,6 +239,8 @@ namespace SteamBot
         public abstract void OnTradeTimeout ();
 
         public abstract void OnTradeSuccess ();
+
+        public abstract void OnTradeAwaitingEmailConfirmation (long tradeOfferID);
 
         public virtual void OnTradeClose ()
         {
@@ -373,7 +375,7 @@ namespace SteamBot
 
         private void SendTradeMessageImpl(string message)
         {
-            if (Trade != null && !Trade.HasTradeCompletedOk)
+            if (Trade != null && !Trade.HasTradeEnded)
             {
                 Trade.SendMessage(message);
             }
@@ -387,7 +389,7 @@ namespace SteamBot
         /// <param name="formatParams">Optional.  The format parameters, using the same syntax as String.Format()</param>
         protected virtual void SendReplyMessage(string message, params object[] formatParams)
         {
-            if (_lastMessageWasFromTrade && Trade != null && !Trade.HasTradeCompletedOk)
+            if (_lastMessageWasFromTrade && Trade != null && !Trade.HasTradeEnded)
             {
                 SendTradeMessage(message, formatParams);
             }
@@ -406,7 +408,7 @@ namespace SteamBot
         /// <param name="formatParams">Optional.  The format parameters, using the same syntax as String.Format()</param>
         protected virtual void SendReplyMessage(int delayMs, string message, params object[] formatParams)
         {
-            if (_lastMessageWasFromTrade && Trade != null && !Trade.HasTradeCompletedOk)
+            if (_lastMessageWasFromTrade && Trade != null && !Trade.HasTradeEnded)
             {
                 SendTradeMessage(delayMs, message, formatParams);
             }
