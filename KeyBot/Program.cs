@@ -48,7 +48,8 @@ namespace KeyBot
                                 .DeserializeObject<CompactValidationRuleSet>(File.ReadAllText(Path.Combine(Program.CurrentDirectory, "SwapRules.json")))
                                 .GetFullRuleSet()
                             )                
-                        }
+                        },
+                        Log
                     ) { 
                         AuthCode = authCode,
                         TwoFactorAuth = twoFactorAuth

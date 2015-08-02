@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using KeyBot.Log;
 using KeyBot.Models;
 using KeyBot.OfferValidators;
 using KeyBot.Price;
-using KeyBot.Properties;
-using Newtonsoft.Json;
 using SteamKit2;
 using SteamTrade;
 using SteamTrade.TradeOffer;
@@ -44,11 +43,14 @@ namespace KeyBot
         private ManualResetEventSlim StopEvent;
         private Thread TradeCheckingThread;
         private ManualResetEventSlim BotStoppedEvent;
-
+        
         public EResult LogoffReason { get; private set; }
 
-        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval, List<OfferValidator> validators)
+        private ILogger Log { get; set; }
+
+        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval, List<OfferValidator> validators, ILogger log)
         {
+            Log = log;
             Login = login;
             Password = password;
             ApiKey = apiKey;
@@ -90,7 +92,7 @@ namespace KeyBot
                     }
                 }
                 catch (Exception e) {
-                    Log("Main thread exception: " + e.Message);
+                    Log.Log(LogLevel.Debug, "Main thread exception: " + e.Message);
                     Stop();
                 }
             }).Start();            
@@ -123,12 +125,12 @@ namespace KeyBot
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {            
             if (callback.Result != EResult.OK) {
-                Log("Unable to connect to Steam: " + callback.Result);
+                Log.Log(LogLevel.Debug, "Unable to connect to Steam: " + callback.Result);
                 Stop();
                 return;
             }
 
-            Log("Connected to Steam! Logging in " + Login + "...");
+            Log.Log(LogLevel.Debug, "Connected to Steam! Logging in " + Login + "...");
 
             byte[] sentryHash = null;
             string sentryFileName = Path.Combine(Program.CurrentDirectory, "sentry.bin");
@@ -157,18 +159,18 @@ namespace KeyBot
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
-        {            
-            Log("Disconnected from Steam");
+        {
+            Log.Log(LogLevel.Debug, "Disconnected from Steam");
             Stop();            
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             bool isSteamGuard = callback.Result == EResult.AccountLogonDenied;
-            bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode;
+            bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode || callback.Result == EResult.AccountLoginDeniedNeedTwoFactor;
 
             if (isSteamGuard || is2FA) {
-                Log("This account is SteamGuard protected!");
+                Console.WriteLine("This account is SteamGuard protected!");
 
                 if (is2FA) {
                     Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
@@ -181,12 +183,12 @@ namespace KeyBot
             }
 
             if (callback.Result != EResult.OK) {
-                Log(string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
+                Log.Log(LogLevel.Warning, string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
                 Stop();
                 return;
             }
 
-            Log("Successfully logged on!");
+            Log.Log(LogLevel.Debug, "Successfully logged on!");
             UserNonce = callback.WebAPIUserNonce;
 
             // at this point, we'd be able to perform actions on Steam            
@@ -195,13 +197,13 @@ namespace KeyBot
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {            
             LogoffReason = callback.Result;
-            Log("Logged off from Steam: " + callback.Result);
+            Log.Log(LogLevel.Debug, "Logged off from Steam: " + callback.Result);
             Stop();
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
-            Log("Updating sentryfile...");
+            Log.Log(LogLevel.Debug, "Updating sentryfile...");
 
             byte[] sentryHash = CryptoHelper.SHAHash(callback.Data);
 
@@ -229,7 +231,7 @@ namespace KeyBot
                 SentryFileHash = sentryHash,
             });
 
-            Log("Done!");
+            Log.Log(LogLevel.Debug, "Sentryfile updated");
         }
 
         private void OnLoginKey(SteamUser.LoginKeyCallback callback)
@@ -241,7 +243,7 @@ namespace KeyBot
         private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
         {
             if (callback.Result == EResult.OK) {
-                Log("Received new WebAPIUserNonce.");
+                Log.Log(LogLevel.Debug, "Received new WebAPIUserNonce.");
                 UserNonce = callback.Nonce;
                 UserWebLogon();
             }
@@ -251,12 +253,12 @@ namespace KeyBot
         {
             bool authd = SteamWeb.Authenticate(UniqueID, SteamClient, UserNonce);
             if (authd) {
-                Log("Web authenticated");
-                Log("Starting trade checking");
+                Log.Log(LogLevel.Debug, "Web authenticated");
+                Log.Log(LogLevel.Debug, "Starting trade checking");
                 TradeCheckingThread = new Thread(TradeCheckingProc);
                 TradeCheckingThread.Start();                
             } else {
-                Log("Web authentication failed");
+                Log.Log(LogLevel.Warning, "Web authentication failed");
                 Stop();
             }
         }
@@ -279,7 +281,7 @@ namespace KeyBot
                     Logoff();
                 }
                 catch (Exception e) {
-                    Log("Error while checking trades:\n" + ExceptionHelper.GetExceptionText(e, true, true));
+                    Log.Log(LogLevel.Debug, "Error while checking trades:\n" + ExceptionHelper.GetExceptionText(e, true, true));
                 }
                 StopEvent.Wait(UpdateInterval);
             }
@@ -302,7 +304,7 @@ namespace KeyBot
         private void CheckOffer(OfferModel o)
         {            
             bool accept = OfferValidators.Any(c => c.IsValid(o));
-            Log(
+            Log.Log(LogLevel.Info, 
                 string.Format(
                     "Trade {0}\nWants:\n{1}\nOffers:\n{2}\n{3}\n",
                     o.TradeOfferId,
@@ -314,21 +316,21 @@ namespace KeyBot
             
             if (accept) {
                 //accept
-                Log("Accepting " + o.TradeOfferId);
+                Log.Log(LogLevel.Info, "Accepting " + o.TradeOfferId);
                 TradeOffer to = null;
                 if (OfferManager.GetOffer(o.TradeOfferId, out to)) {
                     TradeOfferAcceptResponse acceptResp = to.Accept();
                     if (acceptResp.Accepted) {
-                        Log(o.TradeOfferId + " accepted");
+                        Log.Log(LogLevel.Info, o.TradeOfferId + " accepted");
                     } else { 
                         TradeOfferState curState = TradeWebApi.GetOfferState(o.TradeOfferId);
-                        Log(string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError ?? ""));
+                        Log.Log(LogLevel.Warning, string.Format("Can't accept {0}: {1}", o.TradeOfferId, acceptResp.TradeError ?? ""));
                         //do not add to processed, return and retry next time
                         //it seems there is Steam accept error for some reason
                         throw new TradeAcceptException(acceptResp.TradeError);
                     }
                 } else {
-                    Log("Offer " + o.TradeOfferId + " not found");
+                    Log.Log(LogLevel.Warning, "Offer " + o.TradeOfferId + " not found");
                 }
             }
             ProcessedOffers.Add(o.TradeOfferId);
@@ -347,12 +349,7 @@ namespace KeyBot
                     a.Price = price;
                 }
             }
-        }
-
-        private void Log(string message)
-        {
-            Console.WriteLine(DateTime.Now.ToString("MM\\/dd HH\\:mm\\:ss") + " " + message);
-        }
+        }        
 
         private string GetOfferText(List<CEconAssetModel> assets)
         {            
