@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using AutoMapper;
+using KeyBot.Log;
 using KeyBot.Models;
 using KeyBot.OfferValidators;
 using KeyBot.Properties;
@@ -18,11 +19,12 @@ namespace KeyBot
     internal static class Program
     {
         public static string CurrentDirectory;
-
+        private static ILogger Log;
         private static KeyBot Bot;
 
         static void Main(string[] args)
         {
+            Log = new NLogLogger(NLog.LogManager.GetLogger("ApplicationLog"));
             InitAutomapper();
             Console.OutputEncoding = Encoding.Unicode;
      
@@ -35,7 +37,7 @@ namespace KeyBot
                 string authCode = null;
                 string twoFactorAuth = null;
                 while (true) {
-                    Console.WriteLine("\nStarting the bot");
+                    Log.Log(LogLevel.Debug, "Starting the bot");
                     Bot = new KeyBot(
                         settings.Login, 
                         settings.Password, 
@@ -54,7 +56,7 @@ namespace KeyBot
                     Bot.Start();
                     Bot.Wait();
                     if (Bot.LogoffReason == EResult.LogonSessionReplaced) {
-                        Console.WriteLine("No more bots will be created");
+                        Log.Log(LogLevel.Warning, "Session replaced, no more bots will be created");
                         return;
                     }
                     authCode = Bot.AuthCode;
