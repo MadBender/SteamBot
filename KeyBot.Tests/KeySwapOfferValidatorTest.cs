@@ -133,6 +133,13 @@ namespace KeyBot.Tests
             }));
         }
 
-
+        [TestMethod]
+        public void EmptyTrade()
+        {
+            Assert.IsFalse(Validator.IsValid(new OfferModel {
+                ItemsToGive = new List<CEconAssetModel>(),
+                ItemsToReceive = new List<CEconAssetModel>()
+            }));
+        }
     }
 }

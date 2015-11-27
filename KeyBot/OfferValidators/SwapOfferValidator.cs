@@ -1,9 +1,6 @@
-﻿using System;
+﻿using KeyBot.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using KeyBot.Models;
 
 namespace KeyBot.OfferValidators
 {
@@ -20,6 +17,9 @@ namespace KeyBot.OfferValidators
         public override bool IsValid(OfferModel o)
         {
             var theirItems = new List<CEconAssetModel>(o.ItemsToReceive);
+            if (theirItems.Count == 0) {
+                return false;
+            }
             decimal totalSwapPrice = 0;
 
             //searching a cheapest swap pair for every item of mine

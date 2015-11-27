@@ -31,3 +31,4 @@ packages
 !.nuget/Microsoft.Build.dll
 KeyBot/app.config
 KeyBot/SwapRules.json
+.vs/

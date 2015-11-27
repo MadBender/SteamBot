@@ -24,7 +24,7 @@ namespace KeyBot.Tests
         public void ParsingTest()
         {
             var ruleSet = GetRuleSet();
-            Assert.AreEqual(1, ruleSet.Groups.Count);
+            Assert.AreEqual(3, ruleSet.Groups.Count);
             Assert.AreEqual(5, ruleSet.Rules.Count);
         }
 
@@ -33,8 +33,8 @@ namespace KeyBot.Tests
         {
             Assert.AreEqual(0m, RuleSet.GetSwapPrice("CS:GO Case Key", "Chroma Case Key"));
             Assert.AreEqual(0.05m, RuleSet.GetSwapPrice("Chroma Case Key", "CS:GO Case Key"));
-            Assert.AreEqual(0m, RuleSet.GetSwapPrice("Chroma Case Key", "Operation Breakout Case Key"));
-            Assert.AreEqual(0m, RuleSet.GetSwapPrice("Operation Breakout Case Key", "Operation Phoenix Case Key"));
+            Assert.AreEqual(0.05m, RuleSet.GetSwapPrice("Chroma Case Key", "Operation Breakout Case Key"));
+            Assert.AreEqual(0, RuleSet.GetSwapPrice("Operation Breakout Case Key", "Operation Phoenix Case Key"));
             Assert.AreEqual(0.05m, RuleSet.GetSwapPrice("Huntsman Case Key", "eSports Key"));
             Assert.AreEqual(null, RuleSet.GetSwapPrice("eSports Key", "eSports Key"));
             Assert.AreEqual(null, RuleSet.GetSwapPrice("crap", "eSports Key"));

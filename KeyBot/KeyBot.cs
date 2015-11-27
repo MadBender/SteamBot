@@ -167,7 +167,9 @@ namespace KeyBot
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             bool isSteamGuard = callback.Result == EResult.AccountLogonDenied;
-            bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode || callback.Result == EResult.AccountLoginDeniedNeedTwoFactor;
+            bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode 
+                || callback.Result == EResult.AccountLoginDeniedNeedTwoFactor
+                || callback.Result == EResult.TwoFactorCodeMismatch;
 
             if (isSteamGuard || is2FA) {
                 Console.WriteLine("This account is SteamGuard protected!");
