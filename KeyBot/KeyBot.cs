@@ -16,18 +16,14 @@ namespace KeyBot
 {
     internal class KeyBot
     {
-        private string Login;
-        private string Password;
+        public SteamUser.LogOnDetails LogonDetails { get; set; }
+        
         private string ApiKey;
         private TimeSpan UpdateInterval;
         private SteamClient SteamClient;
         private SteamWeb SteamWeb;
-        private SteamTrading SteamTrade;
         private SteamUser SteamUser;
         private CallbackManager CallbackManager;        
-
-        public string TwoFactorAuth { get; set; }
-        public string AuthCode { get;set; }
 
         private string UniqueID;        
         private string UserNonce;
@@ -48,11 +44,10 @@ namespace KeyBot
 
         private ILogger Log { get; set; }
 
-        public KeyBot(string login, string password, string apiKey, TimeSpan updateInterval, List<OfferValidator> validators, ILogger log)
+        public KeyBot(SteamUser.LogOnDetails logonDetails, string apiKey, TimeSpan updateInterval, List<OfferValidator> validators, ILogger log)
         {
-            Log = log;
-            Login = login;
-            Password = password;
+            LogonDetails = logonDetails;
+            Log = log;            
             ApiKey = apiKey;
             UpdateInterval = updateInterval;
             SteamWeb = new SteamWeb();
@@ -65,8 +60,7 @@ namespace KeyBot
         {
             new Thread(() => {
                 SteamClient = new SteamClient();                
-                try {
-                    SteamTrade = SteamClient.GetHandler<SteamTrading>();
+                try {                    
                     SteamUser = SteamClient.GetHandler<SteamUser>();
 
                     CallbackManager = new CallbackManager(SteamClient);
@@ -74,16 +68,15 @@ namespace KeyBot
                     // register a few callbacks we're interested in
                     // these are registered upon creation to a callback manager, which will then route the callbacks
                     // to the functions specified
-                    new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
-                    new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
-
-                    new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
-                    new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
+                    CallbackManager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
+                    CallbackManager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
+                    CallbackManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+                    CallbackManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
                     // this callback is triggered when the steam servers wish for the client to store the sentry file
-                    new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth, CallbackManager);
-                    new Callback<SteamUser.LoginKeyCallback>(OnLoginKey, CallbackManager);
-                    new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce, CallbackManager);
-                                        
+                    CallbackManager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
+                    CallbackManager.Subscribe<SteamUser.LoginKeyCallback>(OnLoginKey);
+                    CallbackManager.Subscribe<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce);                    
+                                      
                     StopEvent = new ManualResetEventSlim();
                     SteamClient.Connect();
                     while (!StopEvent.IsSet) {
@@ -130,7 +123,7 @@ namespace KeyBot
                 return;
             }
 
-            Log.Log(LogLevel.Debug, "Connected to Steam! Logging in " + Login + "...");
+            Log.Log(LogLevel.Debug, "Connected to Steam! Logging in " + LogonDetails.Username + "...");
 
             byte[] sentryHash = null;
             string sentryFileName = Path.Combine(Program.CurrentDirectory, "sentry.bin");
@@ -140,22 +133,10 @@ namespace KeyBot
                 sentryHash = CryptoHelper.SHAHash(sentryFile);
             }
 
-            SteamUser.LogOn(new SteamUser.LogOnDetails {
-                Username = Login,
-                Password = Password,
-
-                // in this sample, we pass in an additional authcode
-                // this value will be null (which is the default) for our first logon attempt
-                AuthCode = AuthCode,
-
-                // if the account is using 2-factor auth, we'll provide the two factor code instead
-                // this will also be null on our first logon attempt
-                TwoFactorCode = TwoFactorAuth,
-
-                // our subsequent logons use the hash of the sentry file as proof of ownership of the file
-                // this will also be null for our first (no authcode) and second (authcode only) logon attempts
-                SentryFileHash = sentryHash,
-            });            
+            LogonDetails.SentryFileHash = sentryHash;
+            LogonDetails.ShouldRememberPassword = true;
+            
+            SteamUser.LogOn(LogonDetails);            
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -164,35 +145,37 @@ namespace KeyBot
             Stop();            
         }
 
+        public bool IsAdditionalAuthCode(EResult r)
+        {
+            return r == EResult.AccountLogonDenied
+                || r == EResult.AccountLogonDeniedNeedTwoFactorCode
+                || r == EResult.AccountLoginDeniedNeedTwoFactor
+                || r == EResult.TwoFactorCodeMismatch;
+        }
+
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            bool isSteamGuard = callback.Result == EResult.AccountLogonDenied;
-            bool is2FA = callback.Result == EResult.AccountLogonDeniedNeedTwoFactorCode 
-                || callback.Result == EResult.AccountLoginDeniedNeedTwoFactor
-                || callback.Result == EResult.TwoFactorCodeMismatch;
-
-            if (isSteamGuard || is2FA) {
-                Console.WriteLine("This account is SteamGuard protected!");
-
-                if (is2FA) {
-                    Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
-                    TwoFactorAuth = Console.ReadLine();
-                } else {
-                    Console.Write("Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
-                    AuthCode = Console.ReadLine().ToUpperInvariant();
-                }                
-                return;
-            }
-
             if (callback.Result != EResult.OK) {
-                Log.Log(LogLevel.Warning, string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
-                Stop();
-                return;
+                LogoffReason = callback.Result;
+                if (IsAdditionalAuthCode(LogoffReason)) {
+                    Console.WriteLine("This account is SteamGuard protected!");
+
+                    if (LogoffReason == EResult.AccountLogonDenied) {
+                        Console.Write("Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
+                        LogonDetails.AuthCode = Console.ReadLine().ToUpperInvariant();
+                    } else {
+                        Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
+                        LogonDetails.TwoFactorCode = Console.ReadLine().ToUpperInvariant();
+                    }
+                    return;
+                } else {
+                    Log.Log(LogLevel.Warning, string.Format("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult));
+                    Stop();
+                }
+            } else {
+                Log.Log(LogLevel.Debug, "Successfully logged on!");
+                UserNonce = callback.WebAPIUserNonce;
             }
-
-            Log.Log(LogLevel.Debug, "Successfully logged on!");
-            UserNonce = callback.WebAPIUserNonce;
-
             // at this point, we'd be able to perform actions on Steam            
         }
 
@@ -238,8 +221,10 @@ namespace KeyBot
 
         private void OnLoginKey(SteamUser.LoginKeyCallback callback)
         {
+            LogonDetails.LoginKey = callback.LoginKey;
+            SteamUser.AcceptNewLoginKey(callback);
             UniqueID = callback.UniqueID.ToString();
-            UserWebLogon();
+            UserWebLogon();            
         }       
 
         private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)

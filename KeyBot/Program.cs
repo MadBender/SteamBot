@@ -34,13 +34,18 @@ namespace KeyBot
             ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
 
             Thread botThread = new Thread(() => {
-                string authCode = null;
-                string twoFactorAuth = null;
+                //this is passed between bots and collects all logon info
+                var logonDetails = new SteamUser.LogOnDetails {
+                    Username = settings.Login,
+                    Password = settings.Password
+                };
                 while (true) {
+                    if (logonDetails.LoginKey != null) {
+                        logonDetails.Password = null;
+                    }
                     Log.Log(LogLevel.Debug, "Starting the bot");
                     Bot = new KeyBot(
-                        settings.Login, 
-                        settings.Password, 
+                        logonDetails,
                         settings.ApiKey, 
                         settings.UpdateInterval, 
                         new List<OfferValidator>{ 
@@ -50,19 +55,21 @@ namespace KeyBot
                             )                
                         },
                         Log
-                    ) { 
-                        AuthCode = authCode,
-                        TwoFactorAuth = twoFactorAuth
-                    };
+                    );
                     Bot.Start();
                     Bot.Wait();
                     if (Bot.LogoffReason == EResult.LogonSessionReplaced) {
                         Log.Log(LogLevel.Warning, "Session replaced, no more bots will be created");
                         return;
+                    }                    
+
+                    //if need additional auth, retry immediately before it expires
+                    if (!Bot.IsAdditionalAuthCode(Bot.LogoffReason)) {
+                        //else reset auth codes and wait
+                        logonDetails.AuthCode = null;
+                        logonDetails.TwoFactorCode = null;
+                        Thread.Sleep(10000);
                     }
-                    authCode = Bot.AuthCode;
-                    twoFactorAuth = Bot.TwoFactorAuth;
-                    Thread.Sleep(10000);
                 }
             });
             botThread.Start();
