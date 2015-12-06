@@ -233,6 +233,8 @@ namespace KeyBot
                 Log.Log(LogLevel.Debug, "Received new WebAPIUserNonce.");
                 UserNonce = callback.Nonce;
                 UserWebLogon();
+            } else {
+                Log.Log(LogLevel.Warning, "Unexpected WebAPIUserNonce result: " + callback.Result);
             }
         }
         
