@@ -61,7 +61,7 @@ namespace KeyBot
                     if (Bot.LogoffReason == EResult.LogonSessionReplaced) {
                         Log.Log(LogLevel.Warning, "Session replaced, no more bots will be created");
                         return;
-                    }                    
+                    }
 
                     //if need additional auth, retry immediately before it expires
                     if (!Bot.IsAdditionalAuthCode(Bot.LogoffReason)) {
@@ -69,6 +69,8 @@ namespace KeyBot
                         logonDetails.AuthCode = null;
                         logonDetails.TwoFactorCode = null;
                         Thread.Sleep(10000);
+                    } else {
+                        Thread.Sleep(1000);
                     }
                 }
             });
